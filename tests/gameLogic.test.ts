@@ -9,7 +9,7 @@ describe("tests the Game class", ()=>{
 
     test("Game class constructor initializes a game from a move list", () => {
         const game = new GameLogic([0, 3, 2, 0])
-        expect(game.moveHistory).toEqual(expect.arrayContaining([[0, 1], [], [0], [1], [], [], []]))
+        expect(game.columns).toEqual(expect.arrayContaining([[1, 2], [], [1], [2], [], [], []]))
     })
 
     test("Game class constructor throws an error on an invalid move number", () => {
@@ -37,11 +37,11 @@ describe("tests the Game class", ()=>{
 
     test("Returns the play order of the current player (1-indexed)", ()=>{
         const game = new GameLogic([3, 3])
-        expect(game.currentPlayer).toBe(0)
+        expect(game.currentPlayer).toBe(1)
     })
 
     test("Columns with six pieces are excluded from the array of valid moves", ()=>{
-        const game = new Game([0, 0, 0, 0, 0, 0])
+        const game = new GameLogic([0, 0, 0, 0, 0, 0])
         expect(game.validMoves).toEqual(expect.arrayContaining([1, 2, 3, 4, 5, 6]))
     })
 
@@ -85,9 +85,17 @@ describe("tests the Game class", ()=>{
     })
 
     test("A game is marked complete after a winning diagonal move", () => {
-        const game = new GameLogic([0, 1, 1, 2, 2, 3, 2, 3, 3, 4])
+        const game = new GameLogic([0, 1, 1, 2, 2, 3, 2, 3, 3, 6])
         game.processMove(3)
         expect(game.isComplete).toBe(true)
+    })
+
+    test("Processing a move adds it to the game's history", () => {
+        const game = new GameLogic([3])
+        game.processMove(2)
+        expect(game.moveHistory[0]).toEqual(3)
+        expect(game.moveHistory[1]).toEqual(2)
+
     })
 
     test("An incomplete game is marked as such and has no winner", () => {
