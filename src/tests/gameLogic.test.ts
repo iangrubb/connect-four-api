@@ -1,10 +1,10 @@
-import GameLogic from '../src/gameLogic'
+import GameLogic from '../gameLogic'
 
 describe("tests the Game class", ()=>{
 
     test("Game class constructor creates a new game when not given an argument", () => {
         const game = new GameLogic()
-        expect(game.moveHistory).toEqual(expect.arrayContaining([]))
+        expect(game.movesHistory).toEqual(expect.arrayContaining([]))
     })
 
     test("Game class constructor initializes a game from a move list", () => {
@@ -93,8 +93,8 @@ describe("tests the Game class", ()=>{
     test("Processing a move adds it to the game's history", () => {
         const game = new GameLogic([3])
         game.processMove(2)
-        expect(game.moveHistory[0]).toEqual(3)
-        expect(game.moveHistory[1]).toEqual(2)
+        expect(game.movesHistory[0]).toEqual(3)
+        expect(game.movesHistory[1]).toEqual(2)
 
     })
 

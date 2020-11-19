@@ -1,15 +1,15 @@
 class GameLogic {
     
-    moveHistory: number[]
+    movesHistory: number[]
     columns: number[][]
     isComplete: boolean
 
-    constructor(moveHistory: number[] = []){
-        this.moveHistory = []
+    constructor(movesHistory: number[] = []){
+        this.movesHistory = []
         this.isComplete = false
         this.columns = [[], [], [], [], [], [], []]
 
-        moveHistory.forEach((columnNumber: number) => {
+        movesHistory.forEach((columnNumber: number) => {
             this.processMove(columnNumber)
         })
     }
@@ -27,7 +27,7 @@ class GameLogic {
     }
 
     get turnNumber(): number {
-        return this.moveHistory.length + 1
+        return this.movesHistory.length + 1
     }
 
     get currentPlayer(): number {
@@ -41,18 +41,27 @@ class GameLogic {
         .map(res => res.idx)
     }
 
-    static winInSequence(sequence: number[]) {
+    processMove(columnNumber: number) {
+        if (columnNumber < 0 || columnNumber > 6) throw("Valid moves are numbers from 0 to 6")
 
-        for (let i = 0; i <= sequence.length - 4; i++) {
-            const segment = sequence.slice(i, i + 4)
-            if (segment.every(n => n === 1) || segment.every(n => n === 2)) {
-                return true
-            }
+        if (this.isComplete) throw("A completed game can't accept new moves")
+
+        if (this.columns[columnNumber].length >= 6) {
+            throw("A column can have at most 6 pieces")
+        } else {
+            this.columns[columnNumber].push(this.currentPlayer)
+            this.movesHistory.push(columnNumber)
         }
-        return false
+
+        this.checkComplete()
     }
 
     checkComplete() {
+
+        if (this.validMoves.length === 0) {
+            this.isComplete = true
+            return
+        }
 
         this.columns.forEach(column => {
             if (GameLogic.winInSequence(column)) {
@@ -93,21 +102,15 @@ class GameLogic {
         }
     }
 
-    processMove(columnNumber: number) {
-        if (columnNumber < 0 || columnNumber > 6) throw("Valid moves are numbers from 0 to 6")
-
-        if (this.isComplete) throw("A completed game can't accept new moves")
-
-        if (this.columns[columnNumber].length >= 6) {
-            throw("A column can have at most 6 pieces")
-        } else {
-            this.columns[columnNumber].push(this.currentPlayer)
-            this.moveHistory.push(columnNumber)
+    static winInSequence(sequence: number[]) {
+        for (let i = 0; i <= sequence.length - 4; i++) {
+            const segment = sequence.slice(i, i + 4)
+            if (segment.every(n => n === 1) || segment.every(n => n === 2)) {
+                return true
+            }
         }
-
-        this.checkComplete()
+        return false
     }
-
 }
 
 export default GameLogic
