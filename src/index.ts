@@ -1,6 +1,7 @@
 import express from 'express'
 
-import SessionCoordinator from './sessionCoordinator'
+import UserSessionManager from './userSessionManager'
+import GameSessionManager from './gameSessionManager'
 
 const app = express()
 
@@ -13,10 +14,12 @@ const io = require("socket.io")(server, {
     }
   })
 
-const sessionCoordinator = new SessionCoordinator(io)
+const gameSessionManager = new GameSessionManager(io)
+
+const userSessionManager = new UserSessionManager(gameSessionManager)
 
 io.on("connection", (socket: any) => {
-    sessionCoordinator.processSocket(socket)
+    userSessionManager.processSocket(socket)
 })
 
 const port = 3000

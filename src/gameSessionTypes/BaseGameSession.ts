@@ -1,47 +1,57 @@
 import GameLogic from "../gameLogic";
+import UserSession from "../userSession";
 
-interface ActiveUser {
-    userId: number,
-    socket: any
+export interface BaseArgs {
+    io: any,
+    gameId: number,
+    moveHistory: number[],
+    allowedUserIds: number[]
 }
 
 class BaseGameSession {
 
     allowedUserIds: number[]
-    activeUsers: ActiveUser[]
+    activeUsers: UserSession[]
     game: GameLogic
     gameId: number
     io: any
 
-    constructor(io: any, gameId: number, moveHistory: number[], allowedUserIds: number[]) {
-        this.io = io
-        this.allowedUserIds = allowedUserIds
-        this.gameId = gameId
-        this.game = new GameLogic(moveHistory)
+    constructor(baseArgs: BaseArgs) {
+        this.io = baseArgs.io
+        this.allowedUserIds = baseArgs.allowedUserIds
+        this.gameId = baseArgs.gameId
+        this.game = new GameLogic(baseArgs.moveHistory)
         this.activeUsers = []
     }
 
-    public connectUser(socket: any, userId: number) {
-
-        socket.join(this.gameId)
-
-        if (this.allowedUserIds.includes(userId)) {
-            this.activeUsers.push({userId, socket})
+    public connectUser(session: UserSession) {
+        if (this.allowedUserIds.includes(session.userId)) {
+            session.socket.join(this.gameId)
+            this.activeUsers.push(session)
             return true
         } else {
             return false
         }
     }
 
-    public disconnectUser(socket: any, userId: number) {
+    public disconnectUser(session: UserSession) {
 
         // In multiplayer sessions, we'll broadcast something here regarding player presence
-        socket.leave(this.gameId)
-        this.activeUsers = this.activeUsers.filter(user => user.userId !== userId)
+        session.socket.leave(this.gameId)
+        this.activeUsers = this.activeUsers.filter(user => user.userId !== session.userId)
     }
 
     public messageRoom(...args: any[]) {
         this.io.to(this.gameId).emit(...args)
+    }
+
+    public get viewGameState() {
+        return {
+            movesHistory: this.game.movesHistory,
+            validMoves: this.game.validMoves,
+            currentPlayer: this.game.currentPlayer,
+            gameStatus: this.game.gameStatus
+        }
     }
 }
 

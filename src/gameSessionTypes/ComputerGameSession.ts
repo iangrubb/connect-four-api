@@ -1,59 +1,66 @@
 
 import GameLogic, { GameMove } from '../gameLogic'
-import BaseGameSession from './BaseGameSession'
+import UserSession from '../userSession'
+import BaseGameSession, { BaseArgs } from './baseGameSession'
 
 class ComputerGameSession extends BaseGameSession {
 
     ai: (game: GameLogic) => number
 
-    constructor(io: any, gameId: number, moveHistory: number[], allowedUsers: number[], ai: (game: GameLogic) => number) {
-        super(io, gameId, moveHistory, allowedUsers)
+    constructor(baseArgs: BaseArgs, ai: (game: GameLogic) => number) {
+        super(baseArgs)
         this.ai = ai
     }
 
-    public connectUser(socket: any, userId: number) {
+    public connectUser(session: UserSession) {
 
-        super.connectUser(socket, userId)
+        // This could be true or false depending on validity of request
+        super.connectUser(session)
 
-        this.configureEventListeners(socket)
-
-        socket.emit("initial-game-state", this.viewGameState)
-
-        // Add in more user meta data / presence / etc in addition to core game info
-
-
-        // Handle connection failure, return false in that case
+        this.configureEventListeners(session)
+        session.socket.emit("initial-game-state", this.viewGameState)
         return true
     }
 
-    public disconnectUser(socket: any, userId: number) {
+    public disconnectUser(session: UserSession) {
 
         // Need this to perform necessary cleanup specific to computer game session?
 
-        super.disconnectUser(socket, userId)
+        super.disconnectUser(session)
 
     }
 
-    private configureEventListeners(socket: any) {
+    private configureEventListeners(session: UserSession) {
 
-        socket.on("new-move", (columnNumber: number) => {
+        session.socket.on("new-move", (columnNumber: number) => {
 
             // Make sure it's actually the player's turn to move
 
             // Use the game logic to make sure it's a valid columnNumber and that the game isn't over
 
-            if (!this.game.gameStatus.isComplete) {
+            if (this.validateMove(session.userId, columnNumber)) {
                 this.handleColumnChoice(columnNumber)
+
+                if (!this.game.gameStatus.isComplete) {
+                    this.scheduleComputerMove()
+                }
             }
 
-            if (!this.game.gameStatus.isComplete) {
-                this.scheduleComputerMove()
-            }
+            
             
             
         })
 
         // Give up message can be added later
+    }
+
+    // Combines game logic and player identity validation, maybe split apart 
+    private validateMove(userId: number, columnNumber: number) {
+        return (
+            !this.game.gameStatus.isComplete
+            && this.allowedUserIds.indexOf(userId) + 1 === this.game.currentPlayer
+            && this.game.validMoves.includes(columnNumber)
+        )   
     }
 
     private handleColumnChoice(columnNumber: number){
@@ -79,14 +86,7 @@ class ComputerGameSession extends BaseGameSession {
         })
     }
 
-    private get viewGameState() {
-        return {
-            movesHistory: this.game.movesHistory,
-            validMoves: this.game.validMoves,
-            currentPlayer: this.game.currentPlayer,
-            gameStatus: this.game.gameStatus
-        }
-    }
+    
 }
 
 export default ComputerGameSession
