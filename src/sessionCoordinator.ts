@@ -1,6 +1,12 @@
 import ComputerGameSession from './gameSessionTypes/ComputerGameSession'
 
+import GameAI from './gameAI'
+
 // The keys on ActiveGames will eventually have to be something besides gameIds, since two players can review their multiplayer game separately
+
+
+
+// Maybe split this into two classes, one to manage users and one to manage games
 
 interface ActiveGames {
     [key: number]: ComputerGameSession;
@@ -55,7 +61,6 @@ class SessionCoordinator {
             this.removeUserFromGameSession(socket, userId)
             this.unregisterUser(userId)
         })
-
     }
 
     private registerUser(userId: number) {
@@ -78,7 +83,13 @@ class SessionCoordinator {
         // Add data fetching and other cases
         // Add in ability for game session creation to fail, when db lookup finds issue
 
-        const gameSession = new ComputerGameSession(this.io, gameId, moveHistory, allowedUserIds)
+
+        // Randomize who goes first, make sure computer initiates the first move if required to do so
+
+
+        // Plug in AI here, make choice about which based on stored game difficulty
+
+        const gameSession = new ComputerGameSession(this.io, gameId, moveHistory, allowedUserIds, GameAI.random)
 
         this.activeGames[gameId] = gameSession
 

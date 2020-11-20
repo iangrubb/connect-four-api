@@ -1,4 +1,5 @@
-interface GameMove {
+
+export interface GameMove {
     player: number,
     column: number,
     row: number,

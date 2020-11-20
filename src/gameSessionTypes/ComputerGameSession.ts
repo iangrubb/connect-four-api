@@ -1,24 +1,28 @@
 
-import { couldStartTrivia } from 'typescript'
+import GameLogic, { GameMove } from '../gameLogic'
 import BaseGameSession from './BaseGameSession'
 
 class ComputerGameSession extends BaseGameSession {
 
-    constructor(io: any, gameId: number, moveHistory: number[], allowedUsers: number[]) {
+    ai: (game: GameLogic) => number
+
+    constructor(io: any, gameId: number, moveHistory: number[], allowedUsers: number[], ai: (game: GameLogic) => number) {
         super(io, gameId, moveHistory, allowedUsers)
+        this.ai = ai
     }
 
     public connectUser(socket: any, userId: number) {
 
-        // Handle connection failure
         super.connectUser(socket, userId)
 
-        this.configureEventListers(socket)
+        this.configureEventListeners(socket)
 
         socket.emit("initial-game-state", this.viewGameState)
 
         // Add in more user meta data / presence / etc in addition to core game info
 
+
+        // Handle connection failure, return false in that case
         return true
     }
 
@@ -30,32 +34,49 @@ class ComputerGameSession extends BaseGameSession {
 
     }
 
-    private configureEventListers(socket: any) {
+    private configureEventListeners(socket: any) {
 
         socket.on("new-move", (columnNumber: number) => {
 
-            const newMove = this.game.processMove(columnNumber)
+            // Make sure it's actually the player's turn to move
 
-            const update = {
-                newMove,
-                validMoves: this.game.validMoves,
-                currentPlayer: this.game.currentPlayer,
-                gameStatus: this.game.gameStatus
+            // Use the game logic to make sure it's a valid columnNumber and that the game isn't over
+
+            if (!this.game.gameStatus.isComplete) {
+                this.handleColumnChoice(columnNumber)
             }
 
-            this.messageRoom("game-update", update)
-
-            // Schedule a new computer move 
-
-
+            if (!this.game.gameStatus.isComplete) {
+                this.scheduleComputerMove()
+            }
+            
+            
         })
 
         // Give up message can be added later
-
     }
 
-    private messageRoom(...args: any[]) {
-        this.io.to(this.gameId).emit(...args)
+    private handleColumnChoice(columnNumber: number){
+        const newMove = this.game.processMove(columnNumber)
+        this.updateAfterMove(newMove)
+    }
+
+    private scheduleComputerMove() {
+        const delay = 500 + Math.floor(Math.random() * 1000)
+
+        setTimeout(() => {
+            const columnNumber = this.ai(this.game)
+            this.handleColumnChoice(columnNumber)
+        }, delay)
+    }
+
+    private updateAfterMove(newMove: GameMove) {
+        this.messageRoom("game-update", {
+            newMove,
+            validMoves: this.game.validMoves,
+            currentPlayer: this.game.currentPlayer,
+            gameStatus: this.game.gameStatus
+        })
     }
 
     private get viewGameState() {

@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const ComputerGameSession_1 = __importDefault(require("./gameSessionTypes/ComputerGameSession"));
+const gameAI_1 = __importDefault(require("./gameAI"));
 class SessionCoordinator {
     constructor(io) {
         this.io = io;
@@ -56,7 +57,9 @@ class SessionCoordinator {
         const allowedUserIds = [1];
         // Add data fetching and other cases
         // Add in ability for game session creation to fail, when db lookup finds issue
-        const gameSession = new ComputerGameSession_1.default(this.io, gameId, moveHistory, allowedUserIds);
+        // Randomize who goes first, make sure computer initiates the first move if required to do so
+        // Plug in AI here, make choice about which based on stored game difficulty
+        const gameSession = new ComputerGameSession_1.default(this.io, gameId, moveHistory, allowedUserIds, gameAI_1.default.random);
         this.activeGames[gameId] = gameSession;
         return gameSession;
     }

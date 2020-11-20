@@ -1,6 +1,5 @@
 import express from 'express'
 
-import GameLogic from './gameLogic'
 import SessionCoordinator from './sessionCoordinator'
 
 const app = express()

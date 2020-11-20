@@ -39,6 +39,10 @@ class BaseGameSession {
         socket.leave(this.gameId)
         this.activeUsers = this.activeUsers.filter(user => user.userId !== userId)
     }
+
+    public messageRoom(...args: any[]) {
+        this.io.to(this.gameId).emit(...args)
+    }
 }
 
 export default BaseGameSession
