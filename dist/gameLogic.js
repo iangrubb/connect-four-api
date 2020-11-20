@@ -39,14 +39,13 @@ class GameLogic {
             throw ("Valid moves are numbers from 0 to 6");
         if (this.isComplete)
             throw ("A completed game can't accept new moves");
-        if (this.columns[columnNumber].length >= 6) {
+        if (this.columns[columnNumber].length >= 6)
             throw ("A column can have at most 6 pieces");
-        }
-        else {
-            this.columns[columnNumber].push(this.currentPlayer);
-            this.movesHistory.push(columnNumber);
-        }
+        this.columns[columnNumber].push(this.currentPlayer);
+        const newMove = { player: this.currentPlayer, row: this.columns[columnNumber].length - 1, column: columnNumber, turnNumber: this.turnNumber };
+        this.movesHistory.push(newMove);
         this.checkComplete();
+        return newMove;
     }
     checkComplete() {
         if (this.validMoves.length === 0) {

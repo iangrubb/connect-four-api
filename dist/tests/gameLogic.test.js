@@ -81,8 +81,8 @@ describe("tests the Game class", () => {
     test("Processing a move adds it to the game's history", () => {
         const game = new gameLogic_1.default([3]);
         game.processMove(2);
-        expect(game.movesHistory[0]).toEqual(3);
-        expect(game.movesHistory[1]).toEqual(2);
+        expect(game.movesHistory[0]).toMatchObject({ player: 1, row: 0, column: 3, turnNumber: 1 });
+        expect(game.movesHistory[1]).toMatchObject({ player: 2, row: 0, column: 2, turnNumber: 2 });
     });
     test("An incomplete game is marked as such and has no winner", () => {
         const game = new gameLogic_1.default();

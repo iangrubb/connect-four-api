@@ -1,6 +1,5 @@
 import ComputerGameSession from './gameSessionTypes/ComputerGameSession'
 
-
 // The keys on ActiveGames will eventually have to be something besides gameIds, since two players can review their multiplayer game separately
 
 interface ActiveGames {
@@ -19,8 +18,10 @@ class SessionCoordinator {
 
     activeUsers: ActiveUsers
     activeGames: ActiveGames
+    io: any
 
-    constructor() {
+    constructor(io: any) {
+        this.io = io
         this.activeUsers = {}
         this.activeGames = {}
     }
@@ -51,9 +52,10 @@ class SessionCoordinator {
         })
 
         socket.on("disconnect", () => {
-            this.removeUserFromGameSession(userId)
+            this.removeUserFromGameSession(socket, userId)
             this.unregisterUser(userId)
         })
+
     }
 
     private registerUser(userId: number) {
@@ -76,7 +78,7 @@ class SessionCoordinator {
         // Add data fetching and other cases
         // Add in ability for game session creation to fail, when db lookup finds issue
 
-        const gameSession = new ComputerGameSession(moveHistory, allowedUserIds)
+        const gameSession = new ComputerGameSession(this.io, gameId, moveHistory, allowedUserIds)
 
         this.activeGames[gameId] = gameSession
 
@@ -98,13 +100,13 @@ class SessionCoordinator {
         this.activeUsers[userId].currentGameId = gameId
     }
 
-    private removeUserFromGameSession(userId: number) {
+    private removeUserFromGameSession(socket: any, userId: number) {
 
         const gameId = this.activeUsers[userId].currentGameId
 
         if (gameId) {
             const gameSession = this.activeGames[gameId]
-            gameSession.disconnectUser(userId)
+            gameSession.disconnectUser(socket, userId)
             this.activeUsers[userId].currentGameId = null
 
             if (gameSession.activeUsers.length === 0) {

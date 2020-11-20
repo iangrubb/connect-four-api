@@ -1,6 +1,13 @@
+interface GameMove {
+    player: number,
+    column: number,
+    row: number,
+    turnNumber: number
+}
+
 class GameLogic {
     
-    movesHistory: number[]
+    movesHistory: GameMove[]
     columns: number[][]
     isComplete: boolean
 
@@ -46,14 +53,17 @@ class GameLogic {
 
         if (this.isComplete) throw("A completed game can't accept new moves")
 
-        if (this.columns[columnNumber].length >= 6) {
-            throw("A column can have at most 6 pieces")
-        } else {
-            this.columns[columnNumber].push(this.currentPlayer)
-            this.movesHistory.push(columnNumber)
-        }
+        if (this.columns[columnNumber].length >= 6) throw("A column can have at most 6 pieces")
+        
+        this.columns[columnNumber].push(this.currentPlayer)
 
+        const newMove = {player: this.currentPlayer, row: this.columns[columnNumber].length - 1, column: columnNumber, turnNumber: this.turnNumber}
+
+        this.movesHistory.push(newMove)
+        
         this.checkComplete()
+
+        return newMove
     }
 
     checkComplete() {

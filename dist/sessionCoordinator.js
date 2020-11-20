@@ -14,7 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const ComputerGameSession_1 = __importDefault(require("./gameSessionTypes/ComputerGameSession"));
 class SessionCoordinator {
-    constructor() {
+    constructor(io) {
+        this.io = io;
         this.activeUsers = {};
         this.activeGames = {};
     }
@@ -39,7 +40,7 @@ class SessionCoordinator {
             this.addUserToGameSession(socket, gameId);
         }));
         socket.on("disconnect", () => {
-            this.removeUserFromGameSession(userId);
+            this.removeUserFromGameSession(socket, userId);
             this.unregisterUser(userId);
         });
     }
@@ -55,7 +56,7 @@ class SessionCoordinator {
         const allowedUserIds = [1];
         // Add data fetching and other cases
         // Add in ability for game session creation to fail, when db lookup finds issue
-        const gameSession = new ComputerGameSession_1.default(moveHistory, allowedUserIds);
+        const gameSession = new ComputerGameSession_1.default(this.io, gameId, moveHistory, allowedUserIds);
         this.activeGames[gameId] = gameSession;
         return gameSession;
     }
@@ -69,11 +70,11 @@ class SessionCoordinator {
         gameSession.connectUser(socket, userId);
         this.activeUsers[userId].currentGameId = gameId;
     }
-    removeUserFromGameSession(userId) {
+    removeUserFromGameSession(socket, userId) {
         const gameId = this.activeUsers[userId].currentGameId;
         if (gameId) {
             const gameSession = this.activeGames[gameId];
-            gameSession.disconnectUser(userId);
+            gameSession.disconnectUser(socket, userId);
             this.activeUsers[userId].currentGameId = null;
             if (gameSession.activeUsers.length === 0) {
                 delete this.activeGames[gameId];
