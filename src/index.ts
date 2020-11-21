@@ -19,7 +19,7 @@ const gameSessionManager = new GameSessionManager(io)
 const userSessionManager = new UserSessionManager(gameSessionManager)
 
 io.on("connection", (socket: any) => {
-    userSessionManager.processSocket(socket)
+    userSessionManager.initializeSocket(socket)
 })
 
 const port = 3000

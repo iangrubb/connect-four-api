@@ -18,16 +18,21 @@ class UserSessionManager {
         this.gameSessionManager = gameSessionManager;
         this.activeUsers = {};
     }
-    processSocket(socket) {
+    initializeSocket(socket) {
         return __awaiter(this, void 0, void 0, function* () {
             const userId = UserSessionManager.userIdOfSocket(socket);
-            const session = yield userSession_1.default.asyncConstructor(userId, socket);
-            if (session.valid) {
-                this.registerUser(session);
-                this.configureGlobalEventListeners(session);
+            if (userId) {
+                const session = yield userSession_1.default.asyncConstructor(userId, socket);
+                if (session.valid) {
+                    this.registerUser(session);
+                    this.configureGlobalEventListeners(session);
+                }
+                else {
+                    socket.emit("error", "Failed authentication");
+                }
             }
             else {
-                // Send error message
+                socket.emit("error", "No userId");
             }
         });
     }
@@ -41,8 +46,9 @@ class UserSessionManager {
         session.socket.on("join-game", (gameId) => __awaiter(this, void 0, void 0, function* () {
             this.gameSessionManager.addUserToGameSession(session, gameId);
         }));
+        // May need leave game message
         session.socket.on("disconnect", () => {
-            this.gameSessionManager.removeUserFromGameSession(session);
+            this.gameSessionManager.clearUsersGameSession(session);
             this.unregisterUser(session);
         });
     }

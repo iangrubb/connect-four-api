@@ -17,7 +17,7 @@ const io = require("socket.io")(server, {
 const gameSessionManager = new gameSessionManager_1.default(io);
 const userSessionManager = new userSessionManager_1.default(gameSessionManager);
 io.on("connection", (socket) => {
-    userSessionManager.processSocket(socket);
+    userSessionManager.initializeSocket(socket);
 });
 const port = 3000;
 server.listen(port, () => console.log(`Listening on port ${port}`));

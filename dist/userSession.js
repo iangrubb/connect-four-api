@@ -22,6 +22,7 @@ class UserSession {
         });
     }
     get valid() {
+        // Have the user submit a token to authenticate their channel connection
         return true;
     }
 }

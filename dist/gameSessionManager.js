@@ -12,7 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const computerGameSession_1 = __importDefault(require("./gameSessionTypes/computerGameSession"));
+const gameSession_1 = __importDefault(require("./gameSessionTypes/gameSession"));
+const computerGameConfig_1 = __importDefault(require("./gameSessionTypes/computerGameConfig"));
 const gameAI_1 = __importDefault(require("./gameAI"));
 class GameSessionManager {
     constructor(io) {
@@ -20,18 +21,27 @@ class GameSessionManager {
         this.activeGamesByUserId = {};
         this.activeGamesByGameId = {};
     }
-    addUserToGameSession(session, gameId) {
+    addUserToGameSession(userSession, gameId) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.clearUsersGameSession(userSession);
             let gameSession = this.activeGamesByGameId[gameId];
             if (!gameSession) {
                 gameSession = yield this.createGameSession(gameId);
             }
-            // Consider case where there's a validation error connecting to that game
-            gameSession.connectUser(session);
-            this.activeGamesByUserId[session.userId] = gameSession;
+            if (!gameSession) {
+                this.io.emit("error", "Can't create game session");
+            }
+            else {
+                if (gameSession.connectUser(userSession)) {
+                    this.activeGamesByUserId[userSession.userId] = gameSession;
+                }
+                else {
+                    this.io.emit("error", "No access to that game");
+                }
+            }
         });
     }
-    removeUserFromGameSession(userSession) {
+    clearUsersGameSession(userSession) {
         const gameSession = this.activeGamesByUserId[userSession.userId];
         if (gameSession) {
             gameSession.disconnectUser(userSession);
@@ -42,20 +52,28 @@ class GameSessionManager {
     createGameSession(gameId) {
         return __awaiter(this, void 0, void 0, function* () {
             // Test data:
-            const moveHistory = [];
-            const allowedUserIds = [1];
-            const basicArgs = { io: this.io, gameId, moveHistory, allowedUserIds };
+            const gameData = {
+                id: gameId,
+                moveHistory: [],
+                firstUserId: null,
+                secondUserId: 1
+            };
             // Add data fetching and other cases
             // Add in ability for game session creation to fail, when db lookup finds issue
             // Randomize who goes first, make sure computer initiates the first move if required to do so (should happen when game is made in DB)
-            const gameSession = new computerGameSession_1.default(basicArgs, gameAI_1.default.random);
+            // Checking that data was received
+            // if (gameData) {
+            // }
+            // GameAI.random
+            const computerGameConfig = new computerGameConfig_1.default(gameAI_1.default.random);
+            const gameSession = new gameSession_1.default(this.io, gameData, computerGameConfig);
             this.activeGamesByGameId[gameId] = gameSession;
             return gameSession;
         });
     }
     deleteGameSessionIfEmpty(session) {
         if (session.activeUsers.length === 0) {
-            delete this.activeGamesByGameId[session.gameId];
+            delete this.activeGamesByGameId[session.gameData.id];
         }
     }
 }

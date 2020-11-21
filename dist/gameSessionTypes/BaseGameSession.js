@@ -11,6 +11,7 @@ class BaseGameSession {
         this.gameId = baseArgs.gameId;
         this.game = new gameLogic_1.default(baseArgs.moveHistory);
         this.activeUsers = [];
+        this.eventMessages = [];
     }
     connectUser(session) {
         if (this.allowedUserIds.includes(session.userId)) {
@@ -24,6 +25,7 @@ class BaseGameSession {
     }
     disconnectUser(session) {
         // In multiplayer sessions, we'll broadcast something here regarding player presence
+        // If we allow multiple sessions for a user in a game, some care is needed with this.
         session.socket.leave(this.gameId);
         this.activeUsers = this.activeUsers.filter(user => user.userId !== session.userId);
     }

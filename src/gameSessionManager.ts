@@ -1,14 +1,15 @@
-import ComputerGameSession from './gameSessionTypes/computerGameSession'
+import GameSession, { GameData } from './gameSessionTypes/gameSession'
+import ComputerGameConfig from './gameSessionTypes/computerGameConfig'
 
 import UserSession from './userSession'
 
 import GameAI from './gameAI'
 
-type GameSession = ComputerGameSession
-
 // Both of these interfaces will eventually have to use their own ids, so that:
     // There can be many userSessions per user. (multiple tabs)
     // There can be many gameSessions per game. (review games)
+
+// Make sure we can handle a user joining a game in multiple sessions
 
 interface ActiveGamesByUserId {
     [key: number]: GameSession;
@@ -30,7 +31,9 @@ class GameSessionManager {
         this.activeGamesByGameId = {}
     }
     
-    public async addUserToGameSession(session: UserSession, gameId: number) {
+    public async addUserToGameSession(userSession: UserSession, gameId: number) {
+
+        this.clearUsersGameSession(userSession)
 
         let gameSession = this.activeGamesByGameId[gameId]
 
@@ -38,13 +41,18 @@ class GameSessionManager {
             gameSession = await this.createGameSession(gameId)
         }
 
-        // Consider case where there's a validation error connecting to that game
-
-        gameSession.connectUser(session)
-        this.activeGamesByUserId[session.userId] = gameSession
+        if (!gameSession) {
+            this.io.emit("error", "Can't create game session")
+        } else {
+            if (gameSession.connectUser(userSession)) {
+                this.activeGamesByUserId[userSession.userId] = gameSession
+            } else {
+                this.io.emit("error", "No access to that game")
+            }
+        }
     }
 
-    public removeUserFromGameSession(userSession: UserSession) {
+    public clearUsersGameSession(userSession: UserSession) {
 
         const gameSession = this.activeGamesByUserId[userSession.userId]
 
@@ -59,11 +67,12 @@ class GameSessionManager {
 
         // Test data:
 
-        const moveHistory: number[] = []
-
-        const allowedUserIds = [1]
-
-        const basicArgs = {io: this.io, gameId, moveHistory, allowedUserIds}
+        const gameData: GameData = {
+            id: gameId,
+            moveHistory: [],
+            firstUserId: null,
+            secondUserId: 1
+        }
 
         // Add data fetching and other cases
         // Add in ability for game session creation to fail, when db lookup finds issue
@@ -71,7 +80,23 @@ class GameSessionManager {
         // Randomize who goes first, make sure computer initiates the first move if required to do so (should happen when game is made in DB)
 
 
-        const gameSession = new ComputerGameSession(basicArgs, GameAI.random)
+        // Checking that data was received
+
+        // if (gameData) {
+
+
+        // }
+
+
+        // GameAI.random
+
+        const computerGameConfig = new ComputerGameConfig(GameAI.random)
+
+        const gameSession = new GameSession(this.io, gameData, computerGameConfig)
+
+
+
+
 
         this.activeGamesByGameId[gameId] = gameSession
 
@@ -80,7 +105,7 @@ class GameSessionManager {
 
     private deleteGameSessionIfEmpty(session: GameSession) {
         if (session.activeUsers.length === 0) {
-            delete this.activeGamesByGameId[session.gameId]
+            delete this.activeGamesByGameId[session.gameData.id]
         }
     }
 

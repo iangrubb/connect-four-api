@@ -15,17 +15,20 @@ class UserSessionManager {
         this.activeUsers = {}
     }
 
-    public async processSocket(socket: any) {
-
+    public async initializeSocket(socket: any) {
         const userId = UserSessionManager.userIdOfSocket(socket)
 
-        const session = await UserSession.asyncConstructor(userId, socket)
+        if (userId) {
+            const session = await UserSession.asyncConstructor(userId, socket)
 
-        if (session.valid) {
-            this.registerUser(session)
-            this.configureGlobalEventListeners(session)
+            if (session.valid) {
+                this.registerUser(session)
+                this.configureGlobalEventListeners(session)
+            } else {
+                socket.emit("error", "Failed authentication")
+            }
         } else {
-            // Send error message
+            socket.emit("error", "No userId")
         }
     }
 
@@ -43,8 +46,10 @@ class UserSessionManager {
             this.gameSessionManager.addUserToGameSession(session, gameId)
         })
 
+        // May need leave game message
+
         session.socket.on("disconnect", () => {
-            this.gameSessionManager.removeUserFromGameSession(session)
+            this.gameSessionManager.clearUsersGameSession(session)
             this.unregisterUser(session)
         })
     }

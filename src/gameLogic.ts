@@ -49,6 +49,10 @@ class GameLogic {
         .map(res => res.idx)
     }
 
+    isValidMove(columnNumber: number) {
+        return !this.gameStatus.isComplete && this.validMoves.includes(columnNumber)
+    }
+
     processMove(columnNumber: number) {
         if (columnNumber < 0 || columnNumber > 6) throw("Valid moves are numbers from 0 to 6")
 
