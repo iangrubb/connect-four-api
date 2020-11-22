@@ -65,7 +65,7 @@ class GameSessionManager {
             // if (gameData) {
             // }
             // GameAI.random
-            const computerGameConfig = new computerGameConfig_1.default(gameAI_1.default.random);
+            const computerGameConfig = new computerGameConfig_1.default(gameAI_1.default.basic);
             const gameSession = new gameSession_1.default(this.io, gameData, computerGameConfig);
             this.activeGamesByGameId[gameId] = gameSession;
             return gameSession;

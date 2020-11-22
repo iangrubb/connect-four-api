@@ -37,6 +37,10 @@ class GameSession {
     messageRoom(...args) {
         this.io.to(this.gameData.id).emit(...args);
     }
+    processMoveRequest(columnNumber) {
+        const newMove = this.game.newMove(columnNumber);
+        this.sendUpdateForMove(newMove);
+    }
     sendGameState() {
         this.messageRoom("initial-game-state", {
             movesHistory: this.game.movesHistory,

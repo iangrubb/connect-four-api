@@ -42,45 +42,45 @@ describe("tests the Game class", () => {
     });
     test("Processing a move adds it to the correct column", () => {
         const game = new gameLogic_1.default([0]);
-        game.processMove(0);
+        game.newMove(0);
         expect(game.columns[0]).toEqual(expect.arrayContaining([1, 2]));
     });
     test("An error is thrown when a new move doesn't reference a valid column", () => {
         const game = new gameLogic_1.default();
         expect(() => {
-            game.processMove(-1);
+            game.newMove(-1);
         }).toThrow("Valid moves are numbers from 0 to 6");
     });
     test("An error is thrown when a new move would go in a full column", () => {
         const game = new gameLogic_1.default([0, 0, 0, 0, 0, 0]);
         expect(() => {
-            game.processMove(0);
+            game.newMove(0);
         }).toThrow("A column can have at most 6 pieces");
     });
     test("An error is thrown when a new move is submitted to a completed game", () => {
         const game = new gameLogic_1.default([0, 1, 0, 2, 0, 3, 0]);
         expect(() => {
-            game.processMove(4);
+            game.newMove(4);
         }).toThrow("A completed game can't accept new moves");
     });
     test("A game is marked complete after a winning vertical move", () => {
         const game = new gameLogic_1.default([0, 1, 0, 2, 0, 3]);
-        game.processMove(0);
+        game.newMove(0);
         expect(game.isComplete).toBe(true);
     });
     test("A game is marked complete after a winning horizontal move", () => {
         const game = new gameLogic_1.default([0, 0, 1, 1, 2, 2]);
-        game.processMove(3);
+        game.newMove(3);
         expect(game.isComplete).toBe(true);
     });
     test("A game is marked complete after a winning diagonal move", () => {
         const game = new gameLogic_1.default([0, 1, 1, 2, 2, 3, 2, 3, 3, 6]);
-        game.processMove(3);
+        game.newMove(3);
         expect(game.isComplete).toBe(true);
     });
     test("Processing a move adds it to the game's history", () => {
         const game = new gameLogic_1.default([3]);
-        game.processMove(2);
+        game.newMove(2);
         expect(game.movesHistory[0]).toMatchObject({ player: 1, row: 0, column: 3, turnNumber: 1 });
         expect(game.movesHistory[1]).toMatchObject({ player: 2, row: 0, column: 2, turnNumber: 2 });
     });
@@ -93,5 +93,15 @@ describe("tests the Game class", () => {
         const game = new gameLogic_1.default([0, 0, 1, 1, 2, 2, 3]);
         expect(game.gameStatus.isComplete).toBe(true);
         expect(game.gameStatus.winner).toBe(1);
+    });
+    test("Can find 4 in a row in an array of values", () => {
+        const values = [1, 2, undefined, 1, 1, 1, 1, 2, undefined];
+        const result = gameLogic_1.default.findConcentrationInArray(values, 4, 4, 1);
+        expect(result).toBeTruthy();
+        if (result) {
+            expect(result.sequence[0]).toBe(1);
+            expect(result.sequence.length).toBe(4);
+            expect(result.starting).toBe(3);
+        }
     });
 });

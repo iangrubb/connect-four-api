@@ -59,6 +59,11 @@ class GameSession {
         this.io.to(this.gameData.id).emit(...args)
     }
 
+    public processMoveRequest(columnNumber: number) {
+        const newMove = this.game.newMove(columnNumber)
+        this.sendUpdateForMove(newMove)
+    }
+
     public sendGameState() {
         this.messageRoom("initial-game-state", {
             movesHistory: this.game.movesHistory,

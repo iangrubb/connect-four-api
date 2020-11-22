@@ -90,7 +90,7 @@ class GameSessionManager {
 
         // GameAI.random
 
-        const computerGameConfig = new ComputerGameConfig(GameAI.random)
+        const computerGameConfig = new ComputerGameConfig(GameAI.basic)
 
         const gameSession = new GameSession(this.io, gameData, computerGameConfig)
 
