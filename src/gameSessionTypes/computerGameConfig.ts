@@ -47,8 +47,15 @@ class ComputerGameConfig {
     }
 
     private isValidSubmission(userSession: UserSession, gameSession: GameSession) {
+
+        const currentPlayer = gameSession.game.currentPlayer
         const userId = userSession.userId
-        return gameSession.gameData.firstUserId === userId || gameSession.gameData.secondUserId === userId
+
+        if (currentPlayer === 1) {
+            return gameSession.gameData.firstUserId === userId
+        } else {
+            return gameSession.gameData.secondUserId === userId
+        }
     }
 
     private scheduleComputerMove(gameSession: GameSession) {

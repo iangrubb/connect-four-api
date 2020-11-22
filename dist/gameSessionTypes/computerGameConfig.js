@@ -30,8 +30,14 @@ class ComputerGameConfig {
         }
     }
     isValidSubmission(userSession, gameSession) {
+        const currentPlayer = gameSession.game.currentPlayer;
         const userId = userSession.userId;
-        return gameSession.gameData.firstUserId === userId || gameSession.gameData.secondUserId === userId;
+        if (currentPlayer === 1) {
+            return gameSession.gameData.firstUserId === userId;
+        }
+        else {
+            return gameSession.gameData.secondUserId === userId;
+        }
     }
     scheduleComputerMove(gameSession) {
         const delay = 500 + Math.floor(Math.random() * 1000);

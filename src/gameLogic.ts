@@ -124,58 +124,54 @@ class GameLogic {
         return diagonals
     }
 
-    findConcentration(quantity: number, space: number, player: number): Result2 | null {
+    findConcentrations(quantity: number, space: number, player: number): Result2[] {
 
-        if (quantity > space) return null
+        if (quantity > space) return []
+
+        let concentrations: Result2[] = []
 
         for (let idx = 0; idx < this.columns.length; idx++) {
             const column = [...this.columns[idx]] as (number | undefined)[]
 
-            while (column.length < 7) {
+            while (column.length < 6) {
                 column.push(undefined)
             }
 
-            const result = GameLogic.findConcentrationInArray(column, quantity, space, player)
-            if (result) {
-                return {direction: "column", idx, ...result}
-            }
+            const result = GameLogic.findConcentrationsInArray(column, quantity, space, player)
+            concentrations = concentrations.concat(result.map(r => ({direction: "column", idx, ...r})))
         }
 
         for (let idx = 0; idx < this.rows.length; idx++) {
             const row = this.rows[idx]
-            const result = GameLogic.findConcentrationInArray(row, quantity, space, player)
-            if (result) {
-                return {direction: "row", idx, ...result}
-            }
+            const result = GameLogic.findConcentrationsInArray(row, quantity, space, player)
+            concentrations = concentrations.concat(result.map(r => ({direction: "row", idx, ...r})))
         }
 
         for (let idx = 0; idx < this.rightDiagonals.length; idx++) {
             const diagonal = this.rightDiagonals[idx]
-            const result = GameLogic.findConcentrationInArray(diagonal, quantity, space, player)
-            if (result) {
-                return {direction: "rightDiagonal", idx, ...result}
-            }
+            const result = GameLogic.findConcentrationsInArray(diagonal, quantity, space, player)
+            concentrations = concentrations.concat(result.map(r => ({direction: "rightDiagonal", idx, ...r})))
         }
 
         for (let idx = 0; idx < this.leftDiagonals.length; idx++) {
             const diagonal = this.leftDiagonals[idx]
-            const result = GameLogic.findConcentrationInArray(diagonal, quantity, space, player)
-            if (result) {
-                return {direction: "leftDiagonal", idx, ...result}
-            }
+            const result = GameLogic.findConcentrationsInArray(diagonal, quantity, space, player)
+            concentrations = concentrations.concat(result.map(r => ({direction: "leftDiagonal", idx, ...r})))
         }
 
-        return null
+        return concentrations
     }
     
 
-    static findConcentrationInArray(searched: (number | undefined)[], quantity: number, space: number, player: number): null | Result {
+    static findConcentrationsInArray(searched: (number | undefined)[], quantity: number, space: number, player: number): Result[] {
 
         let foundCache: number[] = [0, 0]
 
         const otherPlayer = player === 1 ? 2 : 1
 
-        const endsAt = searched.findIndex((val, idx) => {
+        const concentrations: Result[] = []
+
+        searched.forEach((val, idx) => {
 
             if (val) {
                 foundCache[val - 1] = foundCache[val - 1] + 1
@@ -188,18 +184,12 @@ class GameLogic {
                 }   
             }
 
-            return foundCache[player - 1] === quantity && foundCache[otherPlayer - 1] === 0
+            if (idx + 1 >= space && foundCache[player - 1] >= quantity && foundCache[otherPlayer - 1] === 0) {
+                const starting = idx - space + 1
+                concentrations.push({sequence: searched.slice(starting, idx + 1), starting})
+            }
         })
-
-
-        
-
-        if (endsAt >= 0) {
-            const starting = endsAt - space + 1
-            return {sequence: searched.slice(starting, endsAt + 1), starting}
-        } else {
-            return null
-        }
+        return concentrations
     }
 
     checkComplete() {
@@ -208,7 +198,7 @@ class GameLogic {
             this.isComplete = true
         }
 
-        if (this.findConcentration(4, 4, this.previousPlayer)) {
+        if (this.findConcentrations(4, 4, this.previousPlayer).length > 0) {
             this.isComplete = true
         }
 

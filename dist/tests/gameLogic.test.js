@@ -96,12 +96,12 @@ describe("tests the Game class", () => {
     });
     test("Can find 4 in a row in an array of values", () => {
         const values = [1, 2, undefined, 1, 1, 1, 1, 2, undefined];
-        const result = gameLogic_1.default.findConcentrationInArray(values, 4, 4, 1);
+        let result = gameLogic_1.default.findConcentrationsInArray(values, 4, 4, 1);
         expect(result).toBeTruthy();
         if (result) {
-            expect(result.sequence[0]).toBe(1);
-            expect(result.sequence.length).toBe(4);
-            expect(result.starting).toBe(3);
+            expect(result[0].sequence[0]).toBe(1);
+            expect(result[0].sequence.length).toBe(4);
+            expect(result[0].starting).toBe(3);
         }
     });
 });
