@@ -14,7 +14,6 @@ class GameAI {
         const moveIndex = Math.floor(Math.random() * game.validMoves.length)
 
         return game.validMoves[moveIndex]
-
     }
 
     static basic(game: GameLogic) {
