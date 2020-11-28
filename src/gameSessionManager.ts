@@ -65,8 +65,6 @@ class GameSessionManager {
 
     private async createGameSession(gameId: number) {
 
-        // Test data:
-
         const gameData: GameData = {
             id: gameId,
             moveHistory: [],

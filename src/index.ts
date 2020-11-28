@@ -1,101 +1,30 @@
 import express from 'express'
 
+import GameLogic from './gameLogic'
+
 import UserSessionServer from './userSessionServer'
+import GameSessionServer from './gameSessionServer'
 
-
-import { from, fromEvent, Subject } from 'rxjs'
-import { map, mergeMap,  filter, mapTo, multicast } from 'rxjs/operators'
-
-// import UserSessionManager from './userSessionManager'
-// import GameSessionManager from './gameSessionManager'
+import { from, fromEvent, Subject, BehaviorSubject, of, Observable, interval } from 'rxjs'
+import { map, mergeMap,  filter, mapTo, multicast, switchMap, take, takeUntil, refCount, startWith, mergeAll } from 'rxjs/operators'
+import GameSession from './gameSessionTypes/gameSession'
 
 const app = express()
 
 const server = require('http').createServer(app)
 
-const io = require("socket.io")(server, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
-    }
-})
+const io = require("socket.io")
 
-// const userSessionServer = new UserSessionServer(io)
-
-interface Connection {
-  io: any,
-  client: any
+const CORS_CONFIG = {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 }
 
+const userSessionServer = new UserSessionServer(io(server, CORS_CONFIG))
 
-
-const simulateValidation = (id: string): Promise<boolean> => new Promise(resolve => {
-  console.log("Begin Validating:", id)
-  const idNumber = parseInt(id)
-  setTimeout(() => resolve(idNumber === 1))
-})
-
-const connection$ =
-  fromEvent(io, "connection").pipe(
-    map( (client: any): Connection => ({io, client}))
-  )
-
-const validConnection$ =
-  connection$.pipe(
-    mergeMap((conn: Connection) =>
-      from(simulateValidation(conn.client.handshake.query.userId)).pipe(
-        filter(result => result),
-        mapTo(conn)
-    )))
-
-
-const validConnectionSource$ = validConnection$.pipe(
-  multicast(()=> new Subject())
-)
-
-
-
-    
-    
-const disconnect$ =
-  connection$.pipe(
-    mergeMap(({ client }) => fromEvent(client, "disconnect").pipe(
-      map(() => client)
-    ))
-  )
-
-validConnectionSource$.connect()
-
-validConnectionSource$.subscribe(conn => console.log(conn.client.id))
-
-validConnectionSource$.subscribe(conn => console.log(conn.client.id))
-
-
-
-
-// connection$.subscribe( (conn: any) => console.log(conn.client.id))
-
-
-// disconnect$.subscribe( (client: any) => console.log(client.id))
-
-
-
-
-
-
-
-// const gameSessionManager = new GameSessionManager(io)
-
-// const userSessionManager = new UserSessionManager(gameSessionManager)
-
-// io.on("connection", (socket: any) => {
-//     userSessionManager.initializeSocket(socket)
-// })
-
-
-
-
-
+const gameSessionServer = new GameSessionServer(userSessionServer)
 
 const port = 3000
 server.listen(port, () => console.log(`Listening on port ${port}`))

@@ -51,7 +51,6 @@ class GameSessionManager {
     }
     createGameSession(gameId) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Test data:
             const gameData = {
                 id: gameId,
                 moveHistory: [],
