@@ -3,48 +3,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class ComputerGameConfig {
     constructor(ai) {
         this.ai = ai;
-        this.removeCallback = null;
+        this.session = null;
     }
-    apply(userSession, gameSession) {
-        const handleNewMove = (columnNumber) => {
-            if (this.isValidSubmission(userSession, gameSession) && gameSession.game.isValidMove(columnNumber)) {
-                gameSession.processMoveRequest(columnNumber);
-                if (!gameSession.game.isComplete) {
-                    this.scheduleComputerMove(gameSession);
-                }
+    injectSession(session) {
+        this.session = session;
+    }
+    onCreate() {
+        if (this.session.gameData.firstUserId === null) {
+            this.scheduleComputerMove();
+        }
+    }
+    handleAction(client, action) {
+        switch (action.message) {
+            case "new-move-request":
+                const columnNumber = parseInt(action.payload);
+                const clientId = parseInt(client.handshake.query.userId);
+                this.handleMoveRequest(clientId, columnNumber);
+                break;
+            default:
+                break;
+        }
+    }
+    handleMoveRequest(clientId, columnNumber) {
+        if (this.session.activeUser === clientId && this.session.game.isValidMove(columnNumber)) {
+            this.processMove(columnNumber);
+            if (!this.session.game.isComplete) {
+                this.scheduleComputerMove();
             }
-        };
-        userSession.socket.on("new-move", handleNewMove);
-        this.removeCallback = () => {
-            userSession.socket.off("new-move", handleNewMove);
-        };
-    }
-    remove() {
-        if (this.removeCallback) {
-            this.removeCallback();
         }
     }
-    onConnected(userSession, gameSession) {
-        if (gameSession.gameData.firstUserId === null) {
-            this.scheduleComputerMove(gameSession);
-        }
-    }
-    isValidSubmission(userSession, gameSession) {
-        const currentPlayer = gameSession.game.currentPlayer;
-        const userId = userSession.userId;
-        if (currentPlayer === 1) {
-            return gameSession.gameData.firstUserId === userId;
-        }
-        else {
-            return gameSession.gameData.secondUserId === userId;
-        }
-    }
-    scheduleComputerMove(gameSession) {
-        const delay = 500 + Math.floor(Math.random() * 1000);
-        setTimeout(() => {
-            const columnNumber = this.ai(gameSession.game);
-            gameSession.processMoveRequest(columnNumber);
-        }, delay);
+    processMove(columnNumber) {
+        // Instead of emitting an event directly to the users, it might be cleaner here to emit an event that's
+        // listened to by the gameSessionServer that it uses to send feedback to connected users.
+        const newMove = this.session.game.newMove(columnNumber);
+        // Old:
+        // client.emit("new-move-alert", gameSession.serializeMove(newMove))
     }
 }
 exports.default = ComputerGameConfig;

@@ -3,59 +3,49 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const rxjs_1 = require("rxjs");
 const gameLogic_1 = __importDefault(require("../gameLogic"));
 class GameSession {
-    constructor(io, gameData, eventConfig) {
-        this.io = io;
+    constructor(gameData, actionCallbacks, updateCallbacks) {
         this.game = new gameLogic_1.default(gameData.moveHistory);
         this.gameData = gameData;
-        this.activeUsers = [];
-        this.eventConfig = eventConfig;
+        this.gameUpdate$ = new rxjs_1.Subject();
+        this.actionCallbacks = actionCallbacks;
+        this.updateCallbacks = updateCallbacks;
+        this.gameUpdate$.subscribe(update => this.handleUpdate(update));
+        this.gameUpdate$.next({ message: "initialized" });
     }
-    connectUser(session) {
-        if (this.gameData.firstUserId === session.userId || this.gameData.secondUserId === session.userId) {
-            this.eventConfig.apply(session, this);
-            session.socket.join(this.gameData.id);
-            this.sendGameState();
-            if (this.eventConfig.onConnected) {
-                this.eventConfig.onConnected(session, this);
-            }
-            this.activeUsers.push(session);
-            return true;
-        }
-        else {
-            return false;
-        }
+    handleAction(client, action) {
+        this.actionCallbacks[action.message](this, client, action);
     }
-    disconnectUser(session) {
-        this.eventConfig.remove();
-        // In multiplayer sessions, we'll broadcast something here regarding player presence
-        // If we allow multiple sessions for a user in a game, some care is needed with this.
-        session.socket.leave(this.gameData.id);
-        this.activeUsers = this.activeUsers.filter(user => user.userId !== session.userId);
+    handleUpdate(update) {
+        this.updateCallbacks[update.message](this, update);
     }
-    messageRoom(...args) {
-        this.io.to(this.gameData.id).emit(...args);
+    validateUser(userId) {
+        return this.gameData.validUsers.includes(userId);
     }
-    processMoveRequest(columnNumber) {
+    get activeUser() {
+        return this.game.currentPlayer === 1 ? this.gameData.firstUserId : this.gameData.secondUserId;
+    }
+    processMove(columnNumber) {
         const newMove = this.game.newMove(columnNumber);
-        this.sendUpdateForMove(newMove);
+        this.gameUpdate$.next({ message: "new-move", payload: newMove });
     }
-    sendGameState() {
-        this.messageRoom("initial-game-state", {
+    get serializedGameState() {
+        return {
             movesHistory: this.game.movesHistory,
             validMoves: this.game.validMoves,
             currentPlayer: this.game.currentPlayer,
             gameStatus: this.game.gameStatus
-        });
+        };
     }
-    sendUpdateForMove(newMove) {
-        this.messageRoom("game-update", {
+    serializeMove(newMove) {
+        return {
             newMove,
             validMoves: this.game.validMoves,
             currentPlayer: this.game.currentPlayer,
             gameStatus: this.game.gameStatus
-        });
+        };
     }
 }
 exports.default = GameSession;

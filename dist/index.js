@@ -16,6 +16,6 @@ const CORS_CONFIG = {
     }
 };
 const userSessionServer = new userSessionServer_1.default(io(server, CORS_CONFIG));
-const gameSessionServer = new gameSessionServer_1.default(userSessionServer);
+new gameSessionServer_1.default(userSessionServer);
 const port = 3000;
 server.listen(port, () => console.log(`Listening on port ${port}`));

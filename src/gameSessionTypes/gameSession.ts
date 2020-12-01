@@ -1,85 +1,72 @@
-import GameLogic, { GameMove } from "../gameLogic";
-import UserSession from "../userSession";
-
-// Enforce that eventConfig has an apply method and a remove method
-
-// Maybe also an onConnected callback
+import { Subject } from "rxjs";
+import GameLogic from "../gameLogic";
 
 export interface GameData {
     id: number,
     moveHistory: number[],
     firstUserId: number | null,
-    secondUserId: number | null
+    secondUserId: number | null,
+    validUsers: number[]
 }
 
 class GameSession {
 
-    io: any
     game: GameLogic
     gameData: GameData
-    activeUsers: UserSession[]
-    eventConfig: any
-
-    constructor(io: any, gameData: GameData, eventConfig: any) {
-        this.io = io
-        this.game = new GameLogic(gameData.moveHistory)
+    gameUpdate$: Subject<object>
+    actionCallbacks: object
+    updateCallbacks: object
+    
+    public constructor(gameData: GameData, actionCallbacks: object, updateCallbacks: object) {
+        this.game = new GameLogic(gameData.moveHistory)  
         this.gameData = gameData
-        this.activeUsers = []
-        this.eventConfig = eventConfig
+        this.gameUpdate$ = new Subject()
+        this.actionCallbacks = actionCallbacks
+        this.updateCallbacks = updateCallbacks
+
+
+        this.gameUpdate$.subscribe(update => this.handleUpdate(update))
+
+        this.gameUpdate$.next({message: "initialized"})
     }
 
-    public connectUser(session: UserSession) {
-        if (this.gameData.firstUserId === session.userId || this.gameData.secondUserId === session.userId) {
-
-            this.eventConfig.apply(session, this)
-            session.socket.join(this.gameData.id)
-            this.sendGameState()
-
-            if (this.eventConfig.onConnected) {
-                this.eventConfig.onConnected(session, this)
-            }
-            
-            this.activeUsers.push(session)
-
-            return true
-        } else {
-            return false
-        }
+    public handleAction(client: any, action: object) {
+        this.actionCallbacks[action.message](this, client, action)
     }
 
-    public disconnectUser(session: UserSession) {
-        this.eventConfig.remove()
-        // In multiplayer sessions, we'll broadcast something here regarding player presence
-        // If we allow multiple sessions for a user in a game, some care is needed with this.
-        session.socket.leave(this.gameData.id)
-        this.activeUsers = this.activeUsers.filter(user => user.userId !== session.userId)
+    private handleUpdate(update: object) {
+        this.updateCallbacks[update.message](this, update)
+    }
+    
+    validateUser(userId: number) {
+        return this.gameData.validUsers.includes(userId)
     }
 
-    public messageRoom(...args: any[]) {
-        this.io.to(this.gameData.id).emit(...args)
+    get activeUser() {
+        return this.game.currentPlayer === 1 ? this.gameData.firstUserId : this.gameData.secondUserId
     }
 
-    public processMoveRequest(columnNumber: number) {
+    processMove(columnNumber: number) {
         const newMove = this.game.newMove(columnNumber)
-        this.sendUpdateForMove(newMove)
+        this.gameUpdate$.next({message: "new-move", payload: newMove})
     }
 
-    public sendGameState() {
-        this.messageRoom("initial-game-state", {
+    get serializedGameState() {
+        return {
             movesHistory: this.game.movesHistory,
             validMoves: this.game.validMoves,
             currentPlayer: this.game.currentPlayer,
             gameStatus: this.game.gameStatus
-        })
+        }
     }
 
-    public sendUpdateForMove(newMove: GameMove) {
-        this.messageRoom("game-update", {
+    serializeMove(newMove) {
+        return {
             newMove,
             validMoves: this.game.validMoves,
             currentPlayer: this.game.currentPlayer,
             gameStatus: this.game.gameStatus
-        })
+        }
     }
 }
 

@@ -4,93 +4,51 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const rxjs_1 = require("rxjs");
-const gameAI_1 = __importDefault(require("./gameAI"));
 const operators_1 = require("rxjs/operators");
-const gameLogic_1 = __importDefault(require("./gameLogic"));
+const gameSessionFactory_1 = __importDefault(require("./gameSessionFactory"));
 class GameSessionServer {
     constructor(userSessionServer) {
-        this.gameSessions = new Map();
+        this.gameSessionObservables = new Map();
         this.userSessionServer = userSessionServer;
         this.gameJoin$.subscribe(({ client, session }) => {
-            client.emit('initial-game-state', GameSessionServer.serializeFullGameState(session));
+            client.emit('initial-game-state', session.serializedGameState);
         });
-        this.gameActionStream("new-move-request").subscribe(({ client, session, data }) => {
-            const columnNumber = parseInt(data);
-            const currentPlayer = session.game.currentPlayer;
-            const userId = parseInt(client.handshake.query.userId);
-            let validSubmission;
-            if (currentPlayer === 1) {
-                validSubmission = session.firstUserId === userId;
-            }
-            else {
-                validSubmission = session.secondUserId === userId;
-            }
-            if (validSubmission && session.game.isValidMove(columnNumber)) {
-                const newMove = session.game.newMove(columnNumber);
-                client.emit("new-move-alert", GameSessionServer.serializeMove(session, newMove));
-                if (!session.game.isComplete) {
-                    const delay = 500 + Math.floor(Math.random() * 1000);
-                    setTimeout(() => {
-                        const column = gameAI_1.default.basic(session.game);
-                        const compMove = session.game.newMove(column);
-                        client.emit('new-move-alert', GameSessionServer.serializeMove(session, compMove));
-                    }, delay);
-                }
+        this.gameMemberMessage('game-action').subscribe(({ client, session, data }) => {
+            if (session.gameData.gameId === data.gameId) {
+                session.handleAction(client, data);
             }
         });
+        this.gameMessage$.subscribe(({ client, session, update }) => {
+            if (update.message === "new-move") {
+                client.emit("new-move-alert", session.serializeMove(update.payload));
+            }
+        });
+        // Add subscription here that pushes game event updates back to clients
+        // Make sure they get the game state and then every update after that initial game state
     }
     get gameJoinRequest$() {
-        return this.userSessionServer.streamClientEvent("join-game");
+        return this.userSessionServer.clientEventObservable("join-game");
     }
     get gameJoin$() {
-        return this.gameJoinRequest$.pipe(operators_1.mergeMap(({ io, client, data }) => this.findOrCreateGameSession(parseInt(data)).pipe(operators_1.filter(maybeSession => maybeSession !== null), operators_1.filter(session => this.validateUser(session, parseInt(client.handshake.query.userId))), operators_1.map(session => ({ io, client, session })))));
+        return this.gameJoinRequest$.pipe(operators_1.mergeMap(({ io, client, data }) => this.fetchOrInitializeGameSession(data).pipe(operators_1.filter(maybeSession => maybeSession !== null), operators_1.filter(session => session.validateUser(parseInt(client.handshake.query.userId))), operators_1.map(session => ({ io, client, session })))));
     }
-    gameActionStream(event) {
-        return this.gameJoin$.pipe(operators_1.mergeMap(({ io, client, session }) => rxjs_1.fromEvent(client, event).pipe(operators_1.map(data => ({ io, client, session, data })), operators_1.takeUntil(rxjs_1.fromEvent(client, 'leave-game')))));
+    get gameMessage$() {
+        return this.gameJoin$.pipe(operators_1.mergeMap(({ io, client, session }) => session.gameUpdate$.pipe(operators_1.map(update => ({ io, client, session, update })))));
+    }
+    gameMemberMessage(event) {
+        // Use a more general, but non-circular condition for ending the stream
+        return this.gameJoin$.pipe(operators_1.mergeMap(({ io, client, session }) => rxjs_1.fromEvent(client, event).pipe(operators_1.takeUntil(rxjs_1.fromEvent(client, "leave-game")), operators_1.map(data => ({ io, client, session, data })))));
     }
     get gameDeparture$() {
-        // maybe also listen to a game-emitted event "boot" for when the game is over
-        return this.gameActionStream("disconnect").pipe(rxjs_1.merge(this.gameActionStream("leave-game")));
+        return this.gameMemberMessage("disconnect").pipe(rxjs_1.merge(this.gameMemberMessage("leave-game")));
     }
-    findOrCreateGameSession(gameId) {
-        let gameSession = this.gameSessions.get(gameId);
-        if (!gameSession) {
-            gameSession = this.createGameSession(gameId);
+    fetchOrInitializeGameSession(gameId) {
+        let gameSessionObservable = this.gameSessionObservables.get(gameId);
+        if (!gameSessionObservable) {
+            gameSessionObservable = gameSessionFactory_1.default.asyncInitialize(gameId);
+            this.gameSessionObservables.set(gameId, gameSessionObservable);
         }
-        return gameSession;
-    }
-    createGameSession(gameId) {
-        const sessionSubject = new rxjs_1.BehaviorSubject(null);
-        this.gameSessions.set(gameId, sessionSubject);
-        const mockSession = {
-            gameId,
-            firstUserId: 1,
-            secondUserId: null,
-            game: new gameLogic_1.default()
-        };
-        setTimeout(() => {
-            sessionSubject.next(mockSession);
-        }, 100);
-        return sessionSubject;
-    }
-    validateUser(session, userId) {
-        return session.firstUserId === userId || session.secondUserId === userId;
-    }
-    static serializeFullGameState(session) {
-        return {
-            movesHistory: session.game.movesHistory,
-            validMoves: session.game.validMoves,
-            currentPlayer: session.game.currentPlayer,
-            gameStatus: session.game.gameStatus
-        };
-    }
-    static serializeMove(session, newMove) {
-        return {
-            newMove,
-            validMoves: session.game.validMoves,
-            currentPlayer: session.game.currentPlayer,
-            gameStatus: session.game.gameStatus
-        };
+        return gameSessionObservable;
     }
 }
 exports.default = GameSessionServer;

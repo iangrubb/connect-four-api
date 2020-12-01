@@ -1,152 +1,92 @@
-
 import { BehaviorSubject, fromEvent, merge } from 'rxjs';
 
-import GameAI from './gameAI'
-
-import { map, mergeMap, filter, mapTo, multicast, switchMap, take, takeUntil, refCount, startWith, mergeAll, tap } from 'rxjs/operators'
+import { map, mergeMap, filter, takeUntil } from 'rxjs/operators'
 
 import UserSessionServer from './userSessionServer'
-import GameLogic from './gameLogic'
+
+import GameSession from './gameSessionTypes/gameSession'
+
+import GameSessionFactory from './gameSessionFactory'
+
 
 class GameSessionServer {
 
     userSessionServer: UserSessionServer
-    gameSessions: Map<number, any>
-
-    gameJoinRequest$: any
-    gameJoin$: any
+    gameSessionObservables: Map<number, BehaviorSubject< null | GameSession >>
+    
 
     constructor(userSessionServer: UserSessionServer) {
 
-        this.gameSessions = new Map()
+        this.gameSessionObservables = new Map()
         this.userSessionServer = userSessionServer
-        
-        this.gameJoin$.subscribe(({client, session}) => {
-            client.emit('initial-game-state', GameSessionServer.serializeFullGameState(session))
+
+        this.gameJoin$.subscribe(({ client, session }) => {
+            client.emit('initial-game-state', session.serializedGameState)
         })
 
-        this.gameActionStream("new-move-request").subscribe(({client, session, data}) => {
-
-            const columnNumber = parseInt(data)
-            
-            const currentPlayer = session.game.currentPlayer
-            const userId = parseInt(client.handshake.query.userId)
-
-            let validSubmission
-
-            if (currentPlayer === 1) {
-                validSubmission = session.firstUserId === userId
-            } else {
-                validSubmission = session.secondUserId === userId
+        this.gameMemberMessage('game-action').subscribe(({ client, session, data }) => {
+            if (session.gameData.gameId === data.gameId) {
+                session.handleAction(client, data)
             }
-            
-            if (validSubmission && session.game.isValidMove(columnNumber)) {
+        })
 
-                const newMove = session.game.newMove(columnNumber)
-
-                client.emit("new-move-alert", GameSessionServer.serializeMove(session, newMove))
-                
-                if (!session.game.isComplete) {
-
-                    const delay = 500 + Math.floor(Math.random() * 1000)
-
-                    setTimeout(() => {
-
-                        const column = GameAI.basic(session.game)
-
-                        const compMove = session.game.newMove(column)
-
-                        client.emit('new-move-alert', GameSessionServer.serializeMove(session, compMove))
-
-                    }, delay)
-                }
+        this.gameMessage$.subscribe(({client, session, update}) => {
+            if (update.message === "new-move") {
+                client.emit("new-move-alert", session.serializeMove(update.payload))
             }
         })
     }
 
     get gameJoinRequest$() {
-        return this.userSessionServer.streamClientEvent("join-game")
+        return this.userSessionServer.clientEventObservable("join-game")
     }
 
     get gameJoin$() {
         return this.gameJoinRequest$.pipe(
-            mergeMap(({io, client, data}) => this.findOrCreateGameSession(parseInt(data)).pipe(
+            mergeMap(({io, client, data}) => this.fetchOrInitializeGameSession(data).pipe(
                 filter(maybeSession => maybeSession !== null),
-                filter(session => this.validateUser(session, parseInt(client.handshake.query.userId))),
+                filter(session => (session as GameSession).validateUser(parseInt(client.handshake.query.userId))),
                 map(session => ({io, client, session}))
             ))
         )
     }
-            
-    gameActionStream(event: string) {
+
+    get gameMessage$() {
         return this.gameJoin$.pipe(
-            mergeMap(({io, client, session}) => fromEvent(client, event).pipe(
-                map(data => ({io, client, session, data})),
-                takeUntil(fromEvent(client, 'leave-game'))
+            mergeMap(({io, client, session}) => session.gameUpdate$.pipe(
+                map(update => ({io, client, session, update}))
             ))
         )
     }
 
+    gameMemberMessage(event: string) {
+
+        // Use a more general, but non-circular condition for ending the stream
+
+        return this.gameJoin$.pipe(
+            mergeMap(({io, client, session}) => fromEvent(client, event).pipe(
+                takeUntil(fromEvent(client, "leave-game")),
+                map(data => ({io, client, session, data}))
+            ))
+        )
+    }
+            
     get gameDeparture$() {
-
-        // maybe also listen to a game-emitted event "boot" for when the game is over
-
-        return this.gameActionStream("disconnect").pipe(
-            merge(this.gameActionStream("leave-game"))
+        return this.gameMemberMessage("disconnect").pipe(
+            merge(this.gameMemberMessage("leave-game"))
         )
     }
 
-    findOrCreateGameSession(gameId: number) {
+    fetchOrInitializeGameSession(gameId: number) {
 
-        let gameSession = this.gameSessions.get(gameId)
+        let gameSessionObservable = this.gameSessionObservables.get(gameId)
 
-        if (!gameSession) {
-            gameSession = this.createGameSession(gameId)
+        if (!gameSessionObservable) {
+            gameSessionObservable = GameSessionFactory.asyncInitialize(gameId)
+            this.gameSessionObservables.set(gameId, gameSessionObservable)
         }
 
-        return gameSession
-    }
-
-    createGameSession(gameId: number) {
-
-        const sessionSubject = new BehaviorSubject<null | object>(null)
-
-        this.gameSessions.set(gameId, sessionSubject)
-
-        const mockSession = {
-            gameId,
-            firstUserId: 1,
-            secondUserId: null,
-            game: new GameLogic()
-        }
-
-        setTimeout(() => {            
-            sessionSubject.next(mockSession)
-        }, 100)
-
-        return sessionSubject
-    }
-
-    validateUser(session, userId: number) {
-        return session.firstUserId === userId || session.secondUserId === userId
-    }
-
-    static serializeFullGameState(session) {
-        return {
-            movesHistory: session.game.movesHistory,
-            validMoves: session.game.validMoves,
-            currentPlayer: session.game.currentPlayer,
-            gameStatus: session.game.gameStatus
-        }
-    }
-
-    static serializeMove(session, newMove) {
-        return {
-            newMove,
-            validMoves: session.game.validMoves,
-            currentPlayer: session.game.currentPlayer,
-            gameStatus: session.game.gameStatus
-        }
+        return gameSessionObservable
     }
 }
 
