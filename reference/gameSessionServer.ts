@@ -8,12 +8,10 @@ import GameSession from './gameSessionTypes/gameSession'
 
 import GameSessionFactory from './gameSessionFactory'
 
-
 class GameSessionServer {
 
     userSessionServer: UserSessionServer
     gameSessionObservables: Map<number, BehaviorSubject< null | GameSession >>
-    
 
     constructor(userSessionServer: UserSessionServer) {
 

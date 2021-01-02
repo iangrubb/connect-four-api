@@ -1,7 +1,12 @@
 import express from 'express'
 
-import UserSessionServer from './userSessionServer'
-import GameSessionServer from './gameSessionServer'
+import { GameState } from './models/GameState'
+
+console.log(new GameState())
+
+
+
+
 
 const app = express()
 
@@ -15,10 +20,6 @@ const CORS_CONFIG = {
     methods: ["GET", "POST"]
   }
 }
-
-const userSessionServer = new UserSessionServer(io(server, CORS_CONFIG))
-
-new GameSessionServer(userSessionServer)
 
 const port = 3000
 server.listen(port, () => console.log(`Listening on port ${port}`))
