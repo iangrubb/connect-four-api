@@ -2,8 +2,6 @@ import express from 'express'
 
 import { GameState } from './models/GameState'
 
-console.log(new GameState())
-
 
 
 

@@ -4,8 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const GameState_1 = require("./models/GameState");
-console.log(new GameState_1.GameState());
 const app = express_1.default();
 const server = require('http').createServer(app);
 const io = require("socket.io");
