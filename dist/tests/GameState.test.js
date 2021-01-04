@@ -4,7 +4,7 @@ const GameState_1 = require("../models/GameState");
 describe("Tests the GameState class", () => {
     test("The initial game state is incomplete, has a current player of 1, and has an empty pieceMap", () => {
         const game = GameState_1.GameState.initial();
-        expect(game.isComplete).toBe(false);
+        expect(game.complete).toBe(false);
         expect(game.currentPlayer).toBe(1);
         expect(game.pieceCount).toBe(0);
     });
@@ -36,6 +36,15 @@ describe("Tests the GameState class", () => {
     });
     test("A game is marked complete after a winning vertical move", () => {
         const game = GameState_1.GameState.fromMoveHistory([0, 1, 0, 2, 0, 3]).nextState(0);
-        expect(game.isComplete).toBe(true);
+        expect(game.complete).toBe(true);
     });
+    test("A game is marked complete after a winning horizontal move", () => {
+        const game = GameState_1.GameState.fromMoveHistory([0, 0, 1, 1, 2, 2]).nextState(3);
+        expect(game.complete).toBe(true);
+    });
+    test("A game is marked complete after a winning diagonal move", () => {
+        const game = GameState_1.GameState.fromMoveHistory([0, 1, 1, 2, 2, 3, 2, 3, 3, 6]).nextState(3);
+        expect(game.complete).toBe(true);
+    });
+    // test for a tie
 });
