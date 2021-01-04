@@ -53,6 +53,9 @@ class GameState {
         if (this.hasCompletingMoveAt([columnNumber, rowNumber])) {
             return new GameState(newPieceMap, true, this.nextPlayer, this.currentPlayer);
         }
+        else if (newPieceMap.size === 42) {
+            return new GameState(newPieceMap, true, this.nextPlayer, null);
+        }
         else {
             return new GameState(newPieceMap, false, this.nextPlayer, null);
         }

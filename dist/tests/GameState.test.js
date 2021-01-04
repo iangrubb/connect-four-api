@@ -30,6 +30,10 @@ describe("Tests the GameState class", () => {
         const game = GameState_1.GameState.fromMoveHistory([3, 3, 3, 3, 3, 3]);
         expect(() => game.nextState(3)).toThrow("Invalid Move: column full");
     });
+    test("The move to advance to the next state only works on unfinished games", () => {
+        const game = GameState_1.GameState.fromMoveHistory([0, 1, 0, 2, 0, 3, 0]);
+        expect(() => game.nextState(3)).toThrow("Invalid Move: game complete");
+    });
     test("Valid moves method returns list of available columns", () => {
         const game = GameState_1.GameState.fromMoveHistory([3, 3, 3, 3, 3, 3]);
         expect(game.validMoves).toEqual(expect.arrayContaining([0, 1, 2, 4, 5, 6]));
@@ -46,5 +50,9 @@ describe("Tests the GameState class", () => {
         const game = GameState_1.GameState.fromMoveHistory([0, 1, 1, 2, 2, 3, 2, 3, 3, 6]).nextState(3);
         expect(game.complete).toBe(true);
     });
-    // test for a tie
+    test("A game without any remaining valid moves is complete without a winner", () => {
+        const game = GameState_1.GameState.fromMoveHistory([0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 2, 3, 2, 3, 2, 3, 3, 2, 3, 2, 3, 2, 4, 5, 4, 5, 4, 5, 5, 4, 5, 4, 5, 4, 6, 6, 6, 6, 6, 6]);
+        expect(game.complete).toBe(true);
+        expect(game.winner).toBeNull;
+    });
 });
