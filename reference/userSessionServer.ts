@@ -2,7 +2,6 @@ import { Server } from 'socket.io'
 import { from, fromEvent, Subject, of, Observable } from 'rxjs'
 import { map, mergeMap,  filter, mapTo, multicast, switchMap, takeUntil} from 'rxjs/operators'
 
-
 interface Connection {
     io: Server,
     client: any

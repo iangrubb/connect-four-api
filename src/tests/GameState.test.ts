@@ -1,5 +1,4 @@
 import { GameState, ColumnNumber } from '../models/GameState'
-import { GameStateId } from '../models/GameStateId'
 
 describe("Tests the GameState class", () => {
 
