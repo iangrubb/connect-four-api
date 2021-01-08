@@ -1,11 +1,8 @@
-
-
 import { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
+import { SocketId } from './Socket'
 
 export type UserSessionId = string
-
-export type SocketId = string
 
 export class UserSession {
 
@@ -16,8 +13,8 @@ export class UserSession {
         this.sockets.set(socket.id, socket)
     }
 
-    removeSocket(socketId: SocketId): void {
-        this.sockets.delete(socketId)
+    removeSocket(socket: Socket): void {
+        this.sockets.delete(socket.id)
     }
 
     get socketCount(): number {

@@ -10,8 +10,8 @@ class UserSession {
     addSocket(socket) {
         this.sockets.set(socket.id, socket);
     }
-    removeSocket(socketId) {
-        this.sockets.delete(socketId);
+    removeSocket(socket) {
+        this.sockets.delete(socket.id);
     }
     get socketCount() {
         return this.sockets.size;

@@ -1,61 +1,61 @@
 import { Server, Socket } from 'socket.io'
 
-import { Observable, of, fromEvent } from 'rxjs'
+import { Observable, ConnectableObservable, Subject, fromEvent } from 'rxjs'
 
-import { switchMap, mergeMap, mapTo } from 'rxjs/operators'
+import { mergeMap, map, multicast, takeUntil, endWith } from 'rxjs/operators'
 
-import { UserSession, UserSessionId, SocketId } from '../sessions/UserSession'
+import { UserSession, UserSessionId } from '../sessions/UserSession'
 
-interface QueryParams {
-    userId?: string
-}
+import { getQueryParams, updateQueryParams } from '../sessions/Socket'
 
-const getQueryParams = (socket: Socket): QueryParams => socket.handshake.query
-
-const updateQueryParams = (socket: Socket, updateParams: QueryParams): void => {
-    socket.handshake.query = {...socket.handshake.query, ...updateParams}
+interface UserMessage {
+    message: string,
+    payload?: any,
+    session: UserSession,
+    socket: Socket
 }
 
 export class UserSessionServer {
 
     userSessions: Map<UserSessionId, UserSession> = new Map()
+    userConnection$: ConnectableObservable<{socket: Socket, session: UserSession}>
     
-    constructor(private io: Server) {}
+    constructor(private io: Server) {
 
-    get socketConnect$(): Observable<Socket> {
-        return of(this.io).pipe(
-            switchMap(io => fromEvent<Socket>(io, "connection"))
-        )
+        this.userConnection$ = fromEvent<Socket>(this.io, "connection").pipe(
+            map((socket: Socket) => ({socket, session: this.handleConnect(socket)})),
+            multicast(new Subject())
+        ) as ConnectableObservable<{socket: Socket, session: UserSession}>
+
+        this.userConnection$.connect()
+        
+        this.userMessage$("disconnect").subscribe(this.handleDisconnect)
     }
 
-    get socketDisconnect$(): Observable<{sessionId: UserSessionId | undefined, socketId: SocketId}> {
-        return this.socketConnect$.pipe(
-            mergeMap((socket: Socket) => fromEvent<Socket>(socket, "disconnect").pipe(
-                mapTo({sessionId: getQueryParams(socket).userId, socketId: socket.id})
+    userMessage$(message: string): Observable<UserMessage> {
+        return this.userConnection$.pipe(
+            mergeMap(({socket, session}: {socket: Socket, session: UserSession}) => fromEvent<Socket>(socket, message).pipe(
+                takeUntil(fromEvent(socket, "disconnect")),
+                map((payload: any) => ({message, payload, session, socket})),
+                endWith({message: "disconnect", session, socket})
             ))
         )
     }
 
-    run(): void {
-        this.socketConnect$.subscribe(this.handleConnect)
-        this.socketDisconnect$.subscribe(this.handleDisconnect)
-    }
-
-    private handleConnect = (socket: Socket): void => {
-
-        console.log("Connection", socket.id)
+    private handleConnect = (socket: Socket): UserSession => {
 
         const { userId } = getQueryParams(socket)
-        let session = userId ? this.userSessions.get(userId) : null
+        let session = userId ? this.userSessions.get(userId) : undefined
 
         if (!session) {
             session = this.initializeUserSession()
             updateQueryParams(socket, {userId: session.id})
-            console.log("Made Session", session.id, "Total:", this.userSessions.size)
+            socket.emit('assigned-user-id', session.id)
         }
-        
-        session.addSocket(socket)
 
+        session.addSocket(socket)
+        
+        return session
     }
 
     private initializeUserSession(): UserSession {
@@ -64,26 +64,12 @@ export class UserSessionServer {
         return newSession
     }
 
-    private handleDisconnect = ({socketId, sessionId}: {socketId: SocketId, sessionId: UserSessionId | undefined}): void => {
-
-        console.log("Disconnect", socketId)
+    private handleDisconnect = ({socket, session}: {socket: Socket, session: UserSession}): void => {
         
-        const session = sessionId ? this.userSessions.get(sessionId) : undefined
+        session.removeSocket(socket)
 
-        if (session) {
-            session.removeSocket(socketId)
-            if (session.socketCount === 0) {
-                this.userSessions.delete(sessionId as UserSessionId)
-                console.log("Killed Session", sessionId, "Total:", this.userSessions.size)
-            }
+        if (session.socketCount === 0) {
+            this.userSessions.delete(session.id)
         }
     }
-
-
-    // If the socket arrives with a recognized id, add the client to a map from id to clients
-
-
-
-    // Main goal: have a userMessage stream, which says what message was sent, by what client, and for which user session
-
 }

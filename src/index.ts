@@ -20,7 +20,5 @@ const socketServer = io(server, CORS_CONFIG)
 
 const userSessionServer = new UserSessionServer(socketServer)
 
-userSessionServer.run()
-
 const port = 3000
 server.listen(port, () => console.log(`Listening on port ${port}`))
