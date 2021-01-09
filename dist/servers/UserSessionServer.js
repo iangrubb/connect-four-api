@@ -15,9 +15,9 @@ class UserSessionServer {
             if (!session) {
                 session = this.initializeUserSession();
                 Socket_1.updateQueryParams(socket, { userId: session.id });
-                socket.emit('assigned-user-id', session.id);
             }
             session.addSocket(socket);
+            socket.emit('CONNECTED user', session.id);
             return session;
         };
         this.handleDisconnect = ({ socket, session }) => {
@@ -28,10 +28,13 @@ class UserSessionServer {
         };
         this.userConnection$ = rxjs_1.fromEvent(this.io, "connection").pipe(operators_1.map((socket) => ({ socket, session: this.handleConnect(socket) })), operators_1.multicast(new rxjs_1.Subject()));
         this.userConnection$.connect();
-        this.userMessage$("disconnect").subscribe(this.handleDisconnect);
+        this.userDisconnect$.subscribe(this.handleDisconnect);
+    }
+    get userDisconnect$() {
+        return this.userConnection$.pipe(operators_1.mergeMap(({ socket, session }) => rxjs_1.fromEvent(socket, "disconnect").pipe(operators_1.mapTo({ message: "disconnect", session, socket }), operators_1.take(1))));
     }
     userMessage$(message) {
-        return this.userConnection$.pipe(operators_1.mergeMap(({ socket, session }) => rxjs_1.fromEvent(socket, message).pipe(operators_1.takeUntil(rxjs_1.fromEvent(socket, "disconnect")), operators_1.map((payload) => ({ message, payload, session, socket })), operators_1.endWith({ message: "disconnect", session, socket }))));
+        return this.userConnection$.pipe(operators_1.mergeMap(({ socket, session }) => rxjs_1.fromEvent(socket, message).pipe(operators_1.takeUntil(rxjs_1.fromEvent(socket, "disconnect")), operators_1.map((payload) => ({ message, payload, session, socket })))));
     }
     initializeUserSession() {
         const newSession = new UserSession_1.UserSession();
