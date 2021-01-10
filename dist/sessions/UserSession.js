@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserSession = void 0;
 const uuid_1 = require("uuid");
 class UserSession {
-    constructor() {
-        this.id = uuid_1.v4();
+    constructor(userId) {
         this.sockets = new Map();
+        this.id = userId ? userId : uuid_1.v4();
     }
     addSocket(socket) {
         this.sockets.set(socket.id, socket);

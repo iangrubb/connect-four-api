@@ -19,6 +19,8 @@ export class UserSessionServer {
 
     userSessions: Map<UserSessionId, UserSession> = new Map()
     userConnection$: ConnectableObservable<{socket: Socket, session: UserSession}>
+    processedSocketConnect$: Subject<{socket: Socket, session: UserSession}> = new Subject()
+    processedSessionDisconnect$: Subject<UserSessionId> = new Subject()
     
     constructor(private io: Server) {
         this.userConnection$ = fromEvent<Socket>(this.io, "connection").pipe(
@@ -28,10 +30,10 @@ export class UserSessionServer {
 
         this.userConnection$.connect()
         
-        this.userDisconnect$.subscribe(this.handleDisconnect)
+        this.userSocketDisconnect$.subscribe(this.handleDisconnect)
     }
 
-    get userDisconnect$() {
+    get userSocketDisconnect$() {
         return this.userConnection$.pipe(
             mergeMap(({socket, session}: {socket: Socket, session: UserSession}) => fromEvent<Socket>(socket, "disconnect").pipe(
                 mapTo({message: "disconnect", session, socket}),
@@ -54,19 +56,20 @@ export class UserSessionServer {
         let session = userId ? this.userSessions.get(userId) : undefined
 
         if (!session) {
-            session = this.initializeUserSession()
+            session = this.initializeUserSession(userId)
             updateQueryParams(socket, {userId: session.id})
         }
 
         session.addSocket(socket)
 
         socket.emit('CONNECTED user', session.id)
-        
+        this.processedSocketConnect$.next({ socket, session })
+
         return session
     }
 
-    private initializeUserSession(): UserSession {
-        const newSession = new UserSession()
+    private initializeUserSession(userId: UserSessionId | undefined): UserSession {
+        const newSession = new UserSession(userId)
         this.userSessions.set(newSession.id, newSession)
         return newSession
     }
@@ -76,6 +79,7 @@ export class UserSessionServer {
 
         if (session.socketCount === 0) {
             this.userSessions.delete(session.id)
+            this.processedSessionDisconnect$.next(session.id)
         }
     }
 }

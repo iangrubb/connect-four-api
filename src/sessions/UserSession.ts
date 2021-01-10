@@ -6,8 +6,12 @@ export type UserSessionId = string
 
 export class UserSession {
 
-    public id: UserSessionId = uuid()
+    public id: UserSessionId
     public sockets: Map<SocketId, Socket> = new Map()
+
+    constructor(userId: UserSessionId | undefined) {
+        this.id = userId ? userId : uuid()
+    }
 
     addSocket(socket: Socket): void {
         this.sockets.set(socket.id, socket)
@@ -20,5 +24,4 @@ export class UserSession {
     get socketCount(): number {
         return this.sockets.size
     }
-
 }

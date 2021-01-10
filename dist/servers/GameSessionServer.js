@@ -5,16 +5,18 @@ class GameSessionServer {
     constructor(userSessionServer) {
         this.userSessionServer = userSessionServer;
         this.waitingUser = null;
-        this.handleCreateGame = (userMessage) => {
+        this.handleNewGame = (userMessage) => {
         };
-        this.handleConnectGame = (userMessage) => {
+        this.handleNewGameAction = (userMessage) => {
         };
-        this.handleGameAction = (userMessage) => {
+        this.handleSocketConnect = ({ socket, session }) => {
         };
-        this.userSessionServer.userMessage$("POST game").subscribe(this.handleCreateGame);
-        this.userSessionServer.userMessage$("CONNECT game").subscribe(this.handleConnectGame);
-        this.userSessionServer.userMessage$("POST game/action").subscribe(this.handleGameAction);
-        this.userSessionServer.userDisconnect$.subscribe(console.log);
+        this.handleUserDisconnect = (userId) => {
+        };
+        this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame);
+        this.userSessionServer.userMessage$("POST game/action").subscribe(this.handleNewGameAction);
+        this.userSessionServer.processedSocketConnect$.subscribe(this.handleSocketConnect);
+        this.userSessionServer.processedSessionDisconnect$.subscribe(this.handleUserDisconnect);
     }
 }
 exports.GameSessionServer = GameSessionServer;
