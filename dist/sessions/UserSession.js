@@ -16,5 +16,8 @@ class UserSession {
     get socketCount() {
         return this.sockets.size;
     }
+    messageSockets(message, payload) {
+        this.sockets.forEach((socket) => { socket.emit(message, payload); });
+    }
 }
 exports.UserSession = UserSession;

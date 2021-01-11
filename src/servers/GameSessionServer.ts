@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io'
+import { GameSessionId, HumanGameSession } from '../sessions/HumanGameSession'
 import { UserSession, UserSessionId } from '../sessions/UserSession'
 import { UserSessionServer } from './UserSessionServer'
 import { UserMessage } from './UserSessionServer'
@@ -6,6 +7,7 @@ import { UserMessage } from './UserSessionServer'
 export class GameSessionServer {
 
     private waitingUser: UserSession | null = null
+    private gameSessions: Map<GameSessionId, HumanGameSession> = new Map()
 
     constructor(private userSessionServer: UserSessionServer) {
         this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame)
@@ -18,12 +20,15 @@ export class GameSessionServer {
     handleNewGame = (userMessage: UserMessage): void => {
         switch(userMessage.payload.gameType) {
             case "randomHuman":
-                if (this.waitingUser) {
+                if (this.waitingUser && this.waitingUser.id !== userMessage.session.id) {
+                    const newGame = new HumanGameSession([userMessage.session, this.waitingUser])
                     
+                    this.gameSessions.set(newGame.id, newGame)
 
-                    // make and register a new game session of the appropriate type
-                    // message users letting them know a new game has started
-
+                    newGame.playerSessions.forEach((session: UserSession): void => session.messageSockets(
+                        "CONNECTED game",
+                        newGame.currentState
+                    ))
 
                     this.waitingUser = null
                 } else {

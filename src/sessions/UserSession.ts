@@ -24,4 +24,8 @@ export class UserSession {
     get socketCount(): number {
         return this.sockets.size
     }
+
+    messageSockets(message: string, payload: object): void {
+        this.sockets.forEach((socket: Socket): void => {socket.emit(message, payload)})
+    }
 }
