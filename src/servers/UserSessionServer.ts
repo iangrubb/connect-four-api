@@ -6,7 +6,7 @@ import { mergeMap, map, mapTo, multicast, take, takeUntil } from 'rxjs/operators
 
 import { UserSession, UserSessionId } from '../sessions/UserSession'
 
-import { getQueryParams, updateQueryParams } from '../sessions/Socket'
+import { getQueryParams } from '../sessions/Socket'
 
 export interface UserMessage {
     message: string,
@@ -53,11 +53,11 @@ export class UserSessionServer {
 
     private handleConnect = (socket: Socket): UserSession => {
         const { userId } = getQueryParams(socket)
+
         let session = userId ? this.userSessions.get(userId) : undefined
 
         if (!session) {
             session = this.initializeUserSession(userId)
-            updateQueryParams(socket, {userId: session.id})
         }
 
         session.addSocket(socket)

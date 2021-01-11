@@ -16,7 +16,6 @@ class UserSessionServer {
             let session = userId ? this.userSessions.get(userId) : undefined;
             if (!session) {
                 session = this.initializeUserSession(userId);
-                Socket_1.updateQueryParams(socket, { userId: session.id });
             }
             session.addSocket(socket);
             socket.emit('CONNECTED user', session.id);
