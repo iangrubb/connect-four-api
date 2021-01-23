@@ -1,30 +1,10 @@
+import { GameSession } from "./GameSession"
 import { UserSession } from "./UserSession";
 
-import { GameState } from "../models/GameState"
+export class HumanGameSession extends GameSession {
 
-import { v4 as uuid } from 'uuid'
-
-export type GameSessionId = string
-
-interface SerializedGameState {
-    id: GameSessionId
-}
-
-interface SerializedGameEvent {
-    id: GameSessionId
-}
-
-export class HumanGameSession {
-
-    public id: GameSessionId = uuid()
-    private gameState: GameState = GameState.initial()
-
-    constructor(public playerSessions: UserSession[]) {
-
-    }
-
-    get currentState(): SerializedGameState{
-        return {id: this.id}
+    constructor(playerSessions: UserSession[]) {
+        super(playerSessions)
     }
 
 }

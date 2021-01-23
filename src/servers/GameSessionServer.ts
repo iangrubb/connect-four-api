@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io'
-import { GameSessionId, HumanGameSession } from '../sessions/HumanGameSession'
+import { GameSessionId } from '../sessions/GameSession'
+import { HumanGameSession } from '../sessions/HumanGameSession'
 import { UserSession, UserSessionId } from '../sessions/UserSession'
 import { UserSessionServer } from './UserSessionServer'
 import { UserMessage } from './UserSessionServer'

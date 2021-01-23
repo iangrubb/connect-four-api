@@ -1,16 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HumanGameSession = void 0;
-const GameState_1 = require("../models/GameState");
-const uuid_1 = require("uuid");
-class HumanGameSession {
+const GameSession_1 = require("./GameSession");
+class HumanGameSession extends GameSession_1.GameSession {
     constructor(playerSessions) {
-        this.playerSessions = playerSessions;
-        this.id = uuid_1.v4();
-        this.gameState = GameState_1.GameState.initial();
-    }
-    get currentState() {
-        return { id: this.id };
+        super(playerSessions);
     }
 }
 exports.HumanGameSession = HumanGameSession;
