@@ -13,8 +13,8 @@ export class GameSessionServer {
         this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame)
         this.userSessionServer.userMessage$("DELETE game").subscribe(this.handleDeleteGame)
         this.userSessionServer.userMessage$("POST game/action").subscribe(this.handleNewGameAction)
-        this.userSessionServer.processedSocketConnect$.subscribe(this.handleSocketConnect)
-        this.userSessionServer.processedSessionDisconnect$.subscribe(this.handleUserDisconnect)
+        this.userSessionServer.socketRegistration$.subscribe(this.handleSocketRegistration)
+        this.userSessionServer.sessionClose$.subscribe(this.handleUserSessionClose)
     }
 
     handleNewGame = (userMessage: UserMessage): void => {
@@ -62,11 +62,11 @@ export class GameSessionServer {
 
     }
 
-    handleSocketConnect = ({ socket, session }: { socket: Socket, session: UserSession }): void => {
+    handleSocketRegistration = ({ socket, session }: { socket: Socket, session: UserSession }): void => {
         
     }
 
-    handleUserDisconnect = (userId: UserSessionId): void => {
+    handleUserSessionClose = (userId: UserSessionId): void => {
 
     }
 

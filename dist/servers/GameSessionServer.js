@@ -43,15 +43,15 @@ class GameSessionServer {
         };
         this.handleNewGameAction = (userMessage) => {
         };
-        this.handleSocketConnect = ({ socket, session }) => {
+        this.handleSocketRegistration = ({ socket, session }) => {
         };
-        this.handleUserDisconnect = (userId) => {
+        this.handleUserSessionClose = (userId) => {
         };
         this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame);
         this.userSessionServer.userMessage$("DELETE game").subscribe(this.handleDeleteGame);
         this.userSessionServer.userMessage$("POST game/action").subscribe(this.handleNewGameAction);
-        this.userSessionServer.processedSocketConnect$.subscribe(this.handleSocketConnect);
-        this.userSessionServer.processedSessionDisconnect$.subscribe(this.handleUserDisconnect);
+        this.userSessionServer.socketRegistration$.subscribe(this.handleSocketRegistration);
+        this.userSessionServer.sessionClose$.subscribe(this.handleUserSessionClose);
     }
 }
 exports.GameSessionServer = GameSessionServer;

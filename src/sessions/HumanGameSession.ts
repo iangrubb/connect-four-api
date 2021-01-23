@@ -10,6 +10,10 @@ interface SerializedGameState {
     id: GameSessionId
 }
 
+interface SerializedGameEvent {
+    id: GameSessionId
+}
+
 export class HumanGameSession {
 
     public id: GameSessionId = uuid()
@@ -22,8 +26,5 @@ export class HumanGameSession {
     get currentState(): SerializedGameState{
         return {id: this.id}
     }
-
-
-    // Should be able to report on the current game state and on a recent move / concession / timeout
 
 }

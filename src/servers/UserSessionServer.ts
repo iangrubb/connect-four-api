@@ -17,24 +17,25 @@ export interface UserMessage {
 
 export class UserSessionServer {
 
-    userSessions: Map<UserSessionId, UserSession> = new Map()
-    userConnection$: ConnectableObservable<{socket: Socket, session: UserSession}>
-    processedSocketConnect$: Subject<{socket: Socket, session: UserSession}> = new Subject()
-    processedSessionDisconnect$: Subject<UserSessionId> = new Subject()
+    public socketRegistration$: Subject<{socket: Socket, session: UserSession}> = new Subject()
+    public sessionClose$: Subject<UserSessionId> = new Subject()
+
+    private userSessions: Map<UserSessionId, UserSession> = new Map()
+    private connection$: ConnectableObservable<{socket: Socket, session: UserSession}>
     
     constructor(private io: Server) {
-        this.userConnection$ = fromEvent<Socket>(this.io, "connection").pipe(
+        this.connection$ = fromEvent<Socket>(this.io, "connection").pipe(
             map((socket: Socket) => ({socket, session: this.handleConnect(socket)})),
             multicast(new Subject())
         ) as ConnectableObservable<{socket: Socket, session: UserSession}>
 
-        this.userConnection$.connect()
+        this.connection$.connect()
         
-        this.userSocketDisconnect$.subscribe(this.handleDisconnect)
+        this.disconnect$.subscribe(this.handleDisconnect)
     }
 
-    get userSocketDisconnect$() {
-        return this.userConnection$.pipe(
+    get disconnect$() {
+        return this.connection$.pipe(
             mergeMap(({socket, session}: {socket: Socket, session: UserSession}) => fromEvent<Socket>(socket, "disconnect").pipe(
                 mapTo({message: "disconnect", session, socket}),
                 take(1)
@@ -43,7 +44,7 @@ export class UserSessionServer {
     }
 
     public userMessage$(message: string): Observable<UserMessage> {
-        return this.userConnection$.pipe(
+        return this.connection$.pipe(
             mergeMap(({socket, session}: {socket: Socket, session: UserSession}) => fromEvent<Socket>(socket, message).pipe(
                 takeUntil(fromEvent(socket, "disconnect")),
                 map((payload: any) => ({message, payload, session, socket}))
@@ -63,7 +64,7 @@ export class UserSessionServer {
         session.addSocket(socket)
 
         socket.emit('CONNECTED user', session.id)
-        this.processedSocketConnect$.next({ socket, session })
+        this.socketRegistration$.next({ socket, session })
 
         return session
     }
@@ -79,7 +80,7 @@ export class UserSessionServer {
 
         if (session.socketCount === 0) {
             this.userSessions.delete(session.id)
-            this.processedSessionDisconnect$.next(session.id)
+            this.sessionClose$.next(session.id)
         }
     }
 }
