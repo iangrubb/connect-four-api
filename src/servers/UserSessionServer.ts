@@ -20,7 +20,8 @@ export class UserSessionServer {
     public socketRegistration$: Subject<{socket: Socket, session: UserSession}> = new Subject()
     public sessionClose$: Subject<UserSessionId> = new Subject()
 
-    private userSessions: Map<UserSessionId, UserSession> = new Map()
+    public userSessions: Map<UserSessionId, UserSession> = new Map()
+    
     private connection$: ConnectableObservable<{socket: Socket, session: UserSession}>
     
     constructor(private io: Server) {
@@ -63,7 +64,6 @@ export class UserSessionServer {
 
         session.addSocket(socket)
 
-        socket.emit('CONNECTED user', session.id)
         this.socketRegistration$.next({ socket, session })
 
         return session

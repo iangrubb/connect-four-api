@@ -5,19 +5,37 @@ const HumanGameSession_1 = require("../sessions/HumanGameSession");
 class GameSessionServer {
     constructor(userSessionServer) {
         this.userSessionServer = userSessionServer;
-        this.waitingUser = null;
+        this.waitingUserId = null;
         this.gameSessions = new Map();
+        this.sessionsOfUsers = new Map();
+        this.addUserToGame = (user, game) => {
+            game.addPlayer(user);
+            const currentGameSessions = this.sessionsOfUsers.get(user.id);
+            if (currentGameSessions) {
+                currentGameSessions.push(game);
+            }
+            else {
+                this.sessionsOfUsers.set(user.id, [game]);
+            }
+        };
+        this.removeUserFromGame = () => {
+        };
         this.handleNewGame = (userMessage) => {
             switch (userMessage.payload.gameType) {
                 case "randomHuman":
-                    if (this.waitingUser && this.waitingUser.id !== userMessage.session.id) {
-                        const newGame = new HumanGameSession_1.HumanGameSession([userMessage.session, this.waitingUser]);
+                    const waitingUser = this.waitingUserId ? this.userSessionServer.userSessions.get(this.waitingUserId) : undefined;
+                    if (waitingUser && waitingUser.id !== userMessage.session.id) {
+                        const newGame = new HumanGameSession_1.HumanGameSession();
                         this.gameSessions.set(newGame.id, newGame);
-                        newGame.playerSessions.forEach((session) => session.messageSockets("CONNECTED game", newGame.currentState));
-                        this.waitingUser = null;
+                        this.addUserToGame(userMessage.session, newGame);
+                        this.addUserToGame(waitingUser, newGame);
+                        newGame.playerSessions.forEach(function (session) {
+                            session.messageSockets("CONNECTED game", newGame.currentState);
+                        });
+                        this.waitingUserId = null;
                     }
                     else {
-                        this.waitingUser = userMessage.session;
+                        this.waitingUserId = userMessage.session.id;
                     }
                     break;
                 case "linkedHuman":
@@ -31,8 +49,8 @@ class GameSessionServer {
         this.handleDeleteGame = (userMessage) => {
             switch (userMessage.payload.gameType) {
                 case "randomHuman":
-                    if (this.waitingUser && this.waitingUser.id === userMessage.session.id) {
-                        this.waitingUser = null;
+                    if (this.waitingUserId && this.waitingUserId === userMessage.session.id) {
+                        this.waitingUserId = null;
                     }
                     break;
                 case "computer":
@@ -44,6 +62,12 @@ class GameSessionServer {
         this.handleNewGameAction = (userMessage) => {
         };
         this.handleSocketRegistration = ({ socket, session }) => {
+            const gameSessions = this.sessionsOfUsers.get(session.id);
+            socket.emit('CONNECTED user', {
+                id: session.id,
+                gameSessionIds: (gameSessions === null || gameSessions === void 0 ? void 0 : gameSessions.map(s => s.id)) || [],
+                waitingForGame: this.waitingUserId && this.waitingUserId === session.id
+            });
         };
         this.handleUserSessionClose = (userId) => {
         };

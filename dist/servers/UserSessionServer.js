@@ -18,7 +18,6 @@ class UserSessionServer {
                 session = this.initializeUserSession(userId);
             }
             session.addSocket(socket);
-            socket.emit('CONNECTED user', session.id);
             this.socketRegistration$.next({ socket, session });
             return session;
         };

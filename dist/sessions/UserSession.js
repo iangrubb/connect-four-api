@@ -9,6 +9,10 @@ class UserSession {
     }
     addSocket(socket) {
         this.sockets.set(socket.id, socket);
+        // console.log("Adding socket, sockets now:")
+        // const sockets: string[] = []
+        // this.sockets.forEach(s => sockets.push(s.id))
+        // console.log(sockets)
     }
     removeSocket(socket) {
         this.sockets.delete(socket.id);
@@ -17,6 +21,10 @@ class UserSession {
         return this.sockets.size;
     }
     messageSockets(message, payload) {
+        // const sockets: string[] = []
+        // this.sockets.forEach(s => sockets.push(s.id))
+        // console.log("Messaging these sockets")
+        // console.log(sockets)
         this.sockets.forEach((socket) => { socket.emit(message, payload); });
     }
 }
