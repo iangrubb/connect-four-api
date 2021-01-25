@@ -14,19 +14,7 @@ export class UserSession {
     }
 
     addSocket(socket: Socket): void {
-
-        
-
         this.sockets.set(socket.id, socket)
-
-        // console.log("Adding socket, sockets now:")
-
-        // const sockets: string[] = []
-        // this.sockets.forEach(s => sockets.push(s.id))
-
-        // console.log(sockets)
-
-        
     }
 
     removeSocket(socket: Socket): void {
@@ -38,14 +26,6 @@ export class UserSession {
     }
 
     messageSockets(message: string, payload: object): void {
-
-        // const sockets: string[] = []
-        // this.sockets.forEach(s => sockets.push(s.id))
-
-        // console.log("Messaging these sockets")
-
-        // console.log(sockets)
-
         this.sockets.forEach((socket: Socket): void => {socket.emit(message, payload)})
     }
 }

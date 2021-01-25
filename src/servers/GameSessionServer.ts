@@ -1,22 +1,40 @@
-import { Socket } from 'socket.io'
+import { Observable, timer } from 'rxjs'
+import { takeUntil, mergeMap, mapTo, filter } from 'rxjs/operators'
 import { GameSessionId, GameSession } from '../sessions/GameSession'
 import { HumanGameSession } from '../sessions/HumanGameSession'
 import { UserSession, UserSessionId } from '../sessions/UserSession'
 import { UserSessionServer } from './UserSessionServer'
 import { UserMessage } from './UserSessionServer'
+import { Socket } from 'socket.io'
 
 export class GameSessionServer {
 
     private waitingUserId: UserSessionId | null = null
+    private waitingSockets: Socket[] = []
     private gameSessions: Map<GameSessionId, GameSession> = new Map()
     private sessionsOfUsers: Map<UserSessionId, GameSession[]> = new Map()
+
+    private userTimeoutPeriod: number = 1000
 
     constructor(private userSessionServer: UserSessionServer) {
         this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame)
         this.userSessionServer.userMessage$("DELETE game").subscribe(this.handleDeleteGame)
         this.userSessionServer.userMessage$("POST game/action").subscribe(this.handleNewGameAction)
         this.userSessionServer.socketRegistration$.subscribe(this.handleSocketRegistration)
+        this.userSessionServer.disconnect$.subscribe(this.handleSocketDisconnect)
         this.userSessionServer.sessionClose$.subscribe(this.handleUserSessionClose)
+        this.userSessionTimeout$.subscribe(this.handleUserTimeout)
+    }
+
+    private get userSessionTimeout$(): Observable<UserSessionId> {
+        return this.userSessionServer.sessionClose$.pipe(
+            mergeMap((userSessionId: UserSessionId) => timer(this.userTimeoutPeriod).pipe(
+                mapTo(userSessionId),
+                takeUntil(this.userSessionServer.socketRegistration$.pipe(
+                    filter(({session}) => session.id === userSessionId )
+                ))
+            ))
+        )
     }
 
     private addUserToGame = (user: UserSession, game: GameSession) => {
@@ -40,7 +58,6 @@ export class GameSessionServer {
             case "randomHuman":
 
                 const waitingUser = this.waitingUserId ? this.userSessionServer.userSessions.get(this.waitingUserId) : undefined
-
                 
                 if (waitingUser && waitingUser.id !== userMessage.session.id) {
 
@@ -57,8 +74,10 @@ export class GameSessionServer {
                     )})
 
                     this.waitingUserId = null
+                    this.waitingSockets = []
                 } else {
                     this.waitingUserId = userMessage.session.id
+                    this.waitingSockets.push(userMessage.socket)
                 }
                 break
             case "linkedHuman":
@@ -74,7 +93,10 @@ export class GameSessionServer {
         switch(userMessage.payload.gameType) {
             case "randomHuman":
                 if (this.waitingUserId && this.waitingUserId === userMessage.session.id) {
-                    this.waitingUserId = null
+                    this.waitingSockets = this.waitingSockets.filter(s => s !== userMessage.socket)
+                    if (this.waitingSockets.length === 0) {
+                        this.waitingUserId = null
+                    }
                 }
                 break
             case "computer":
@@ -88,19 +110,36 @@ export class GameSessionServer {
 
     }
 
+    private handleSocketDisconnect = (userMessage: UserMessage): void => {
+        if (this.waitingUserId && this.waitingUserId === userMessage.session.id) {
+            this.waitingSockets = this.waitingSockets.filter(s => s !== userMessage.socket)
+            if (this.waitingSockets.length === 0) {
+                this.waitingUserId = null
+            }
+        }
+    }
+
     private handleSocketRegistration = ({ socket, session }: { socket: Socket, session: UserSession }): void => {
         
         const gameSessions = this.sessionsOfUsers.get(session.id)
 
         socket.emit('CONNECTED user', {
             id: session.id,
-            gameSessionIds: gameSessions?.map(s => s.id) || [],
+            activeGames: gameSessions?.map(s => s.currentState) || [],
             waitingForGame: this.waitingUserId && this.waitingUserId === session.id
         })
     }
 
     private handleUserSessionClose = (userId: UserSessionId): void => {
         
+    }
+
+    private handleUserTimeout = (userId: UserSessionId): void => {
+
+        // close all of that user's games
+
+        // for any multiplayer games, a timeout message should be sent
+
     }
 
 }

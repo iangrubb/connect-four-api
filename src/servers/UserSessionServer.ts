@@ -21,7 +21,7 @@ export class UserSessionServer {
     public sessionClose$: Subject<UserSessionId> = new Subject()
 
     public userSessions: Map<UserSessionId, UserSession> = new Map()
-    
+
     private connection$: ConnectableObservable<{socket: Socket, session: UserSession}>
     
     constructor(private io: Server) {
@@ -35,7 +35,7 @@ export class UserSessionServer {
         this.disconnect$.subscribe(this.handleDisconnect)
     }
 
-    get disconnect$() {
+    public get disconnect$() {
         return this.connection$.pipe(
             mergeMap(({socket, session}: {socket: Socket, session: UserSession}) => fromEvent<Socket>(socket, "disconnect").pipe(
                 mapTo({message: "disconnect", session, socket}),
