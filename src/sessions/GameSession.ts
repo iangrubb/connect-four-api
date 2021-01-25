@@ -1,16 +1,15 @@
 import { GameState } from "../models/GameState"
-import { UserSession } from "./UserSession";
+import { UserSession, SerializedUserState, UserSessionId } from "./UserSession";
 
 import { v4 as uuid } from 'uuid'
 
 export type GameSessionId = string
 
-interface SerializedGameState {
-    id: GameSessionId
-}
-
-interface SerializedGameEvent {
-    id: GameSessionId
+export interface SerializedGameState {
+    id: GameSessionId,
+    players?: SerializedUserState[],
+    ongoing?: boolean,
+    winnerId?: UserSessionId
 }
 
 export abstract class GameSession {
@@ -24,7 +23,7 @@ export abstract class GameSession {
     }
 
     get currentState(): SerializedGameState{
-        return {id: this.id}
+        return {id: this.id, players: this.playerSessions.map(p => p.details), ongoing: true}
     }
 
     public addPlayer(playerSession: UserSession): void {

@@ -19,5 +19,8 @@ class UserSession {
     messageSockets(message, payload) {
         this.sockets.forEach((socket) => { socket.emit(message, payload); });
     }
+    get details() {
+        return { id: this.id };
+    }
 }
 exports.UserSession = UserSession;

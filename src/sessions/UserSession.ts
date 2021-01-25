@@ -4,6 +4,10 @@ import { SocketId } from './Socket'
 
 export type UserSessionId = string
 
+export interface SerializedUserState {
+    id: UserSessionId
+}
+
 export class UserSession {
 
     public id: UserSessionId
@@ -27,5 +31,9 @@ export class UserSession {
 
     messageSockets(message: string, payload: object): void {
         this.sockets.forEach((socket: Socket): void => {socket.emit(message, payload)})
+    }
+
+    get details(): SerializedUserState {
+        return {id: this.id}
     }
 }

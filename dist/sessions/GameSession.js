@@ -10,7 +10,7 @@ class GameSession {
         this.playerSessions = [];
     }
     get currentState() {
-        return { id: this.id };
+        return { id: this.id, players: this.playerSessions.map(p => p.details), ongoing: true };
     }
     addPlayer(playerSession) {
         this.playerSessions.push(playerSession);

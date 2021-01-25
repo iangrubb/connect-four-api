@@ -49,8 +49,19 @@ export class GameSessionServer {
         }
     }
     
-    private removeUserFromGame = () => {
+    private deleteUsersGame = (userId: UserSessionId, game: GameSession) => {
+        if (game.playerSessions.find(p => p.id === userId)) {
 
+            game.playerSessions.forEach(p => {
+                const playersGames = this.sessionsOfUsers.get(p.id) || []
+                this.sessionsOfUsers.set(p.id, playersGames.filter(g => g.id !== game.id))
+                if (this.sessionsOfUsers.get(p.id)?.length === 0) {
+                    this.sessionsOfUsers.delete(p.id)
+                }
+            })
+
+            this.gameSessions.delete(game.id)
+        }
     }
 
     private handleNewGame = (userMessage: UserMessage): void => {
@@ -108,6 +119,20 @@ export class GameSessionServer {
 
     private handleNewGameAction = (userMessage: UserMessage): void => {
 
+        const game = this.gameSessions.get(userMessage?.payload?.gameId)
+
+        if (game && game.playerSessions.find(p => p.id === userMessage.session.id)) {
+            switch(userMessage.payload.actionType) {
+                case "concede":
+                    if (game instanceof HumanGameSession) {
+                        game.reportConcession(userMessage.session.id)
+                    }
+                    this.deleteUsersGame(userMessage.session.id, game)
+                    break
+                default:
+                    break
+            }
+        }
     }
 
     private handleSocketDisconnect = (userMessage: UserMessage): void => {
@@ -136,10 +161,14 @@ export class GameSessionServer {
 
     private handleUserTimeout = (userId: UserSessionId): void => {
 
-        // close all of that user's games
+        const usersGames = this.sessionsOfUsers.get(userId) || []
 
-        // for any multiplayer games, a timeout message should be sent
+        usersGames.forEach(g => {
+            if (g instanceof HumanGameSession) {
+                g.reportConcession(userId)
+            }
 
+            this.deleteUsersGame(userId, g)
+        })
     }
-
 }

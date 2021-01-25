@@ -6,5 +6,12 @@ class HumanGameSession extends GameSession_1.GameSession {
     constructor() {
         super();
     }
+    reportConcession(concedingPlayerId) {
+        const opponent = this.playerSessions.find(p => p.id !== concedingPlayerId);
+        opponent.messageSockets('UPDATE game', {
+            id: this.id, ongoing: false,
+            winnerId: opponent.id
+        });
+    }
 }
 exports.HumanGameSession = HumanGameSession;

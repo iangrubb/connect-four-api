@@ -22,7 +22,18 @@ class GameSessionServer {
                 this.sessionsOfUsers.set(user.id, [game]);
             }
         };
-        this.removeUserFromGame = () => {
+        this.deleteUsersGame = (userId, game) => {
+            if (game.playerSessions.find(p => p.id === userId)) {
+                game.playerSessions.forEach(p => {
+                    var _a;
+                    const playersGames = this.sessionsOfUsers.get(p.id) || [];
+                    this.sessionsOfUsers.set(p.id, playersGames.filter(g => g.id !== game.id));
+                    if (((_a = this.sessionsOfUsers.get(p.id)) === null || _a === void 0 ? void 0 : _a.length) === 0) {
+                        this.sessionsOfUsers.delete(p.id);
+                    }
+                });
+                this.gameSessions.delete(game.id);
+            }
         };
         this.handleNewGame = (userMessage) => {
             switch (userMessage.payload.gameType) {
@@ -43,6 +54,9 @@ class GameSessionServer {
                         this.waitingUserId = userMessage.session.id;
                         this.waitingSockets.push(userMessage.socket);
                     }
+                    console.log("AFTER NEW");
+                    this.gameSessions.forEach((session, key) => console.log(key));
+                    this.sessionsOfUsers.forEach((games, user) => console.log(user, games.length));
                     break;
                 case "linkedHuman":
                     break;
@@ -69,6 +83,20 @@ class GameSessionServer {
             }
         };
         this.handleNewGameAction = (userMessage) => {
+            var _a;
+            const game = this.gameSessions.get((_a = userMessage === null || userMessage === void 0 ? void 0 : userMessage.payload) === null || _a === void 0 ? void 0 : _a.gameId);
+            if (game && game.playerSessions.find(p => p.id === userMessage.session.id)) {
+                switch (userMessage.payload.actionType) {
+                    case "concede":
+                        if (game instanceof HumanGameSession_1.HumanGameSession) {
+                            game.reportConcession(userMessage.session.id);
+                        }
+                        this.deleteUsersGame(userMessage.session.id, game);
+                        break;
+                    default:
+                        break;
+                }
+            }
         };
         this.handleSocketDisconnect = (userMessage) => {
             if (this.waitingUserId && this.waitingUserId === userMessage.session.id) {
@@ -89,8 +117,13 @@ class GameSessionServer {
         this.handleUserSessionClose = (userId) => {
         };
         this.handleUserTimeout = (userId) => {
-            // close all of that user's games
-            // for any multiplayer games, a timeout message should be sent
+            const usersGames = this.sessionsOfUsers.get(userId) || [];
+            usersGames.forEach(g => {
+                if (g instanceof HumanGameSession_1.HumanGameSession) {
+                    g.reportConcession(userId);
+                }
+                this.deleteUsersGame(userId, g);
+            });
         };
         this.userSessionServer.userMessage$("POST game").subscribe(this.handleNewGame);
         this.userSessionServer.userMessage$("DELETE game").subscribe(this.handleDeleteGame);
